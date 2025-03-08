@@ -1,0 +1,1 @@
+// We no longer need this file as the button functionality will be moved to a direct UI config
