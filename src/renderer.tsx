@@ -11,14 +11,15 @@ import {
   createShapeId
 } from '@tldraw/tldraw'
 import { BrowserShapeUtil } from './shapes/BrowserShape'
+import { MarkdownShapeUtil } from './shapes/MarkdownShape'
 
 // The main TLDraw application component
 function TldrawBrowserApp() {
   return (
     <div className="tldraw__editor">
       <Tldraw 
-        persistenceKey="tldraw-browser-electron"
-        shapeUtils={[BrowserShapeUtil]}
+        persistenceKey="tldraw-browser-electron-v2" 
+        shapeUtils={[BrowserShapeUtil, MarkdownShapeUtil]}
         onMount={(editor) => {
           // Create a browser shape ID
           const browserShapeId = createShapeId('browser')
@@ -80,20 +81,20 @@ document.addEventListener('DOMContentLoaded', () => {
     
     console.log('TLDraw browser app initialized successfully');
     
-    // Create a button and add it to the DOM after TLDraw is initialized
+    // Create buttons and add them to the DOM after TLDraw is initialized
     setTimeout(() => {
       // Create container
       const container = document.createElement('div');
       container.className = 'browser-button-container';
       
-      // Create button
-      const button = document.createElement('button');
-      button.className = 'browser-button';
-      button.innerHTML = '🌐 Add Browser';
-      button.title = 'Insert Browser with Webview';
+      // Create browser button
+      const browserButton = document.createElement('button');
+      browserButton.className = 'browser-button';
+      browserButton.innerHTML = '🌐 Add Browser';
+      browserButton.title = 'Insert Browser with Webview';
       
-      // Add click event listener
-      button.addEventListener('click', () => {
+      // Add browser button click event listener
+      browserButton.addEventListener('click', () => {
         // Get the editor from the global we set
         const editor = (window as any).tldrawEditor;
         if (!editor) {
@@ -138,8 +139,67 @@ document.addEventListener('DOMContentLoaded', () => {
         console.log('Browser shape added to canvas');
       });
       
-      // Add button to container
-      container.appendChild(button);
+      // Create markdown button
+      const markdownButton = document.createElement('button');
+      markdownButton.className = 'markdown-button';
+      markdownButton.innerHTML = '📝 Add Markdown';
+      markdownButton.title = 'Insert Markdown Note';
+      markdownButton.style.marginLeft = '10px';
+      
+      // Add markdown button click event listener
+      markdownButton.addEventListener('click', () => {
+        // Get the editor from the global we set
+        const editor = (window as any).tldrawEditor;
+        if (!editor) {
+          console.error('TLDraw editor not found');
+          return;
+        }
+        
+        // Get the current viewport center point with fallback
+        let x = 100, y = 100;
+        try {
+          const viewportBounds = editor.getViewportPageBounds();
+          if (viewportBounds && 
+              typeof viewportBounds.centerX === 'number' && 
+              !isNaN(viewportBounds.centerX) &&
+              typeof viewportBounds.centerY === 'number' && 
+              !isNaN(viewportBounds.centerY)) {
+            x = viewportBounds.centerX - 200; // Center horizontally
+            y = viewportBounds.centerY - 150; // Center vertically
+          }
+        } catch (err) {
+          console.error('Error getting viewport bounds, using default position', err);
+        }
+        
+        // Create a new markdown shape
+        const id = createShapeId();
+        
+        editor.createShape({
+          id,
+          type: 'markdown',
+          x, // Use calculated or default x
+          y, // Use calculated or default y
+          props: {
+            w: 400,
+            h: 300,
+            text: '# Hello World\n\nThis is a markdown note. Edit me!'
+          }
+        });
+        
+        // Select the newly created shape
+        editor.select(id);
+        
+        // Start editing the shape immediately
+        setTimeout(() => {
+          editor.setEditingShape(id);
+        }, 100);
+        
+        console.log('Markdown shape added to canvas');
+      });
+      
+      // Add buttons to container
+      container.appendChild(browserButton);
+      container.appendChild(markdownButton);
       
       // Add container to document
       document.body.appendChild(container);
