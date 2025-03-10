@@ -7,14 +7,17 @@ import '@tldraw/tldraw/tldraw.css'
 import React from 'react'
 import ReactDOM from 'react-dom/client'
 import { 
+  DefaultSizeStyle,
   Tldraw, 
   createShapeId
 } from '@tldraw/tldraw'
 import { BrowserShapeUtil } from './shapes/BrowserShape'
 import { MarkdownShapeUtil } from './shapes/MarkdownShape'
 
+DefaultSizeStyle.setDefaultValue('s')
 // The main TLDraw application component
 function TldrawBrowserApp() {
+
   return (
     <div className="tldraw__editor">
       <Tldraw 
@@ -181,8 +184,37 @@ document.addEventListener('DOMContentLoaded', () => {
           y, // Use calculated or default y
           props: {
             w: 400,
-            h: 300,
-            text: '# Hello World\n\nThis is a markdown note. Edit me!'
+            h: 600,
+            text: `# Markdown Note
+
+This is a **markdown** note with code highlighting and scrolling support!
+
+## Features
+
+- Syntax highlighting
+- Supports all markdown features
+- Toggle between edit and preview modes
+- Proper scrolling for long content
+
+## Code Example
+
+\`\`\`javascript
+function hello() {
+  console.log("Hello world!");
+  
+  // This is a longer code example to demonstrate scrolling
+  const items = [1, 2, 3, 4, 5];
+  
+  items.forEach(item => {
+    console.log(\`Processing item \${item}\`);
+  });
+  
+  return {
+    success: true,
+    message: "Operation completed successfully"
+  };
+}
+\`\`\``
           }
         });
         
