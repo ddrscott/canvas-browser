@@ -1,9 +1,11 @@
 /* eslint-disable react-hooks/rules-of-hooks */
 import React from 'react';
 import { 
-  BaseBoxShapeUtil, 
+  BaseBoxShapeUtil,
+  HTMLContainer,
   TLBaseShape, 
-  useDelaySvgExport
+  useDelaySvgExport,
+  stopEventPropagation
 } from '@tldraw/tldraw';
 
 // Define the browser shape type
@@ -33,6 +35,38 @@ export class BrowserShapeUtil extends BaseBoxShapeUtil<BrowserShape> {
     return true;
   }
 
+  // Preserve scroll position when edit mode ends
+  override onEditEnd(shape: BrowserShape): void {
+    // Try to immediately save the webview state to ensure the current scroll position is preserved
+    try {
+      const webview = document.querySelector(`[data-shape-id="${shape.id}"] webview`) as any;
+      if (webview) {
+        webview.executeJavaScript(`
+          {
+            scrollX: window.scrollX,
+            scrollY: window.scrollY,
+            html: document.documentElement.outerHTML,
+            currentUrl: window.location.href
+          }
+        `).then((state: {scrollX: number, scrollY: number, html: string, currentUrl: string}) => {
+          this.editor.updateShape({
+            id: shape.id,
+            type: 'browser',
+            props: {
+              ...shape.props,
+              scrollX: state.scrollX,
+              scrollY: state.scrollY,
+              innerHTML: state.html,
+              url: state.currentUrl
+            }
+          });
+        }).catch(err => console.error('Error saving webview state on edit end:', err));
+      }
+    } catch (err) {
+      console.error('Failed to save webview state on edit end:', err);
+    }
+  }
+
   // Default props when created
   override getDefaultProps() {
     return {
@@ -48,7 +82,7 @@ export class BrowserShapeUtil extends BaseBoxShapeUtil<BrowserShape> {
   // Render the component
   override component(shape: BrowserShape) {
     const isReady = useDelaySvgExport();
-    const isSelected = this.editor.getSelectedShapeIds().includes(shape.id);
+    const isEditing = this.editor.getEditingShapeId() === shape.id;
     
     // Use a ref for the webview element
     const webviewRef = React.useRef<HTMLDivElement>(null);
@@ -130,12 +164,13 @@ export class BrowserShapeUtil extends BaseBoxShapeUtil<BrowserShape> {
       }
     };
     
-    // Setup the webview on mount
+    // Setup the webview on mount - only run once
     React.useEffect(() => {
-      if (!webviewRef.current) return;
+      // Store a flag in the DOM element to check if we've already set up this webview
+      if (!webviewRef.current || (webviewRef.current as any).__webviewInitialized) return;
       
-      // Clear previous content
-      webviewRef.current.innerHTML = '';
+      // Mark as initialized to prevent re-runs
+      (webviewRef.current as any).__webviewInitialized = true;
       
       let scrollHandler: NodeJS.Timeout | null = null;
       
@@ -150,9 +185,7 @@ export class BrowserShapeUtil extends BaseBoxShapeUtil<BrowserShape> {
         webview.src = shape.props.url;
         webview.setAttribute('partition', 'persist:tldraw');
         webview.setAttribute('allowpopups', 'true');
-        // Full access for embedded browser - simulating regular browser behavior
         webview.setAttribute('webpreferences', 'javascript=yes');
-        // Removed sandbox to allow full browser capabilities
         
         // Style the webview
         webview.style.width = '100%';
@@ -320,8 +353,8 @@ export class BrowserShapeUtil extends BaseBoxShapeUtil<BrowserShape> {
           `);
         });
         
-        // Capture webview state periodically
-        scrollHandler = setInterval(saveWebviewState, 2000);
+        // Capture webview state periodically (consistent timing regardless of edit mode)
+        scrollHandler = setInterval(saveWebviewState, 750);
         
         // Add to DOM
         webviewRef.current.appendChild(webview);
@@ -333,6 +366,7 @@ export class BrowserShapeUtil extends BaseBoxShapeUtil<BrowserShape> {
           clearInterval(scrollHandler);
         }
       };
+    // Only depend on isReady and shape.id, but NOT on isEditing
     }, [isReady, shape.id]);
     
     // Always update URL state when props change
@@ -341,166 +375,172 @@ export class BrowserShapeUtil extends BaseBoxShapeUtil<BrowserShape> {
     }, [shape.props.url]);
     
     return (
-      <div
+      <HTMLContainer
+        id={shape.id}
+        className={isEditing ? 'tldraw-editing-container' : undefined}
         style={{
-          width: shape.props.w,
-          height: shape.props.h,
+          width: '100%',
+          height: '100%',
           display: 'flex',
           flexDirection: 'column',
           borderRadius: '8px',
           overflow: 'hidden',
           boxShadow: '0 2px 10px rgba(0,0,0,0.1)',
           background: 'white',
-          // Main container must remain clickable for selection
-          pointerEvents: 'all', 
-          position: 'relative',
-          // Subtle visual indicator when not selected
-          // opacity: isSelected ? 1 : 0.95,
-          // Add transition for smooth appearance
-          transition: 'box-shadow 0.2s ease, opacity 0.2s ease',
+          pointerEvents: 'all',
         }}
-        onClick={() => {
-          // Ensure shape gets selected when clicking
-          if (!isSelected) {
-            this.editor.select(shape.id);
-          }
-        }}
+        onPointerDown={isEditing ? stopEventPropagation : undefined}
+        onWheel={stopEventPropagation}
       >
-        {/* Browser toolbar container with position relative for overlay */}
-        <div style={{ position: 'relative', height: '32px' }}>
-          {/* Actual toolbar */}
-          <div
-            style={{
-              height: '32px',
-              background: '#f0f0f0',
-              borderTopLeftRadius: '8px',
-              borderTopRightRadius: '8px',
-              borderBottom: '1px solid #ddd',
-              display: 'flex',
-              alignItems: 'center',
-              padding: '0 10px',
-              width: '100%',
-            }}
-          >
-            {/* Back button */}
-            <div
-              onClick={handleBackClick}
-              style={{
-                width: '16px',
-                height: '16px',
-                borderRadius: '50%',
-                background: '#ccc',
-                marginRight: '5px',
-                cursor: 'pointer',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                fontSize: '12px',
-              }}
-            >
-              ←
-            </div>
-            {/* Forward button */}
-            <div
-              onClick={handleForwardClick}
-              style={{
-                width: '16px',
-                height: '16px',
-                borderRadius: '50%',
-                background: '#ccc',
-                marginRight: '10px',
-                cursor: 'pointer',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                fontSize: '12px',
-              }}
-            >
-              →
-            </div>
-            
-            {/* URL bar */}
-            <form 
-              style={{ flex: 1 }}
-              onSubmit={handleUrlSubmit}
-              onClick={(e) => e.stopPropagation()}
-            >
-              <input
-                type="text"
-                value={url}
-                onChange={handleUrlChange}
-                onKeyDown={(e) => e.stopPropagation()}
-                onClick={(e) => e.stopPropagation()}
+        {/* Browser toolbar */}
+        <div
+          style={{
+            height: '32px',
+            background: '#f0f0f0',
+            borderBottom: '1px solid #ddd',
+            display: 'flex',
+            alignItems: 'center',
+            padding: '0 10px',
+            width: '100%',
+            position: 'relative',
+          }}
+        >
+          {isEditing ? (
+            // Interactive controls when editing
+            <>
+              {/* Back button */}
+              <div
+                onClick={handleBackClick}
                 style={{
-                  width: '100%',
-                  height: '22px',
-                  background: 'white',
-                  borderRadius: '11px',
-                  padding: '0 10px',
+                  width: '16px',
+                  height: '16px',
+                  borderRadius: '50%',
+                  background: '#ccc',
+                  marginRight: '5px',
+                  cursor: 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
                   fontSize: '12px',
-                  border: '1px solid #d0d0d0',
-                  outline: 'none',
-                  color: '#666',
-                  boxSizing: 'border-box',
                 }}
-              />
-            </form>
-            
-            {/* Refresh button */}
+              >
+                ←
+              </div>
+              {/* Forward button */}
+              <div
+                onClick={handleForwardClick}
+                style={{
+                  width: '16px',
+                  height: '16px',
+                  borderRadius: '50%',
+                  background: '#ccc',
+                  marginRight: '10px',
+                  cursor: 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  fontSize: '12px',
+                }}
+              >
+                →
+              </div>
+              
+              {/* URL bar */}
+              <form 
+                style={{ flex: 1 }}
+                onSubmit={handleUrlSubmit}
+                onClick={(e) => e.stopPropagation()}
+              >
+                <input
+                  type="text"
+                  value={url}
+                  onChange={handleUrlChange}
+                  onKeyDown={(e) => e.stopPropagation()}
+                  onClick={(e) => e.stopPropagation()}
+                  style={{
+                    width: '100%',
+                    height: '22px',
+                    background: 'white',
+                    borderRadius: '11px',
+                    padding: '0 10px',
+                    fontSize: '12px',
+                    border: '1px solid #d0d0d0',
+                    outline: 'none',
+                    color: '#666',
+                    boxSizing: 'border-box',
+                  }}
+                />
+              </form>
+              
+              {/* Refresh button */}
+              <div
+                onClick={handleRefreshClick}
+                style={{
+                  width: '16px',
+                  height: '16px',
+                  borderRadius: '50%',
+                  background: '#ccc',
+                  marginLeft: '10px',
+                  cursor: 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  fontSize: '12px',
+                }}
+              >
+                ↻
+              </div>
+            </>
+          ) : (
+            // URL display when not editing
             <div
-              onClick={handleRefreshClick}
               style={{
-                width: '16px',
-                height: '16px',
-                borderRadius: '50%',
-                background: '#ccc',
-                marginLeft: '10px',
-                cursor: 'pointer',
+                flex: 1,
+                height: '22px',
+                background: 'white',
+                borderRadius: '11px',
+                padding: '0 10px',
+                fontSize: '12px',
+                border: '1px solid #d0d0d0',
+                color: '#666',
                 display: 'flex',
                 alignItems: 'center',
-                justifyContent: 'center',
-                fontSize: '12px',
+                overflow: 'hidden',
+                textOverflow: 'ellipsis',
+                whiteSpace: 'nowrap',
+                margin: '0 20px',
               }}
             >
-              ↻
+              {shape.props.url}
             </div>
-          </div>
-          
-          {/* Invisible layer to block toolbar interactions when not selected */}
-          {!isSelected && (
-            <div
-              style={{
-                position: 'absolute',
-                top: 0,
-                left: 0,
-                right: 0,
-                bottom: 0,
-                zIndex: 10,
-              }}
-              onClick={(e) => {
-                e.stopPropagation();
-                this.editor.select(shape.id);
-              }}
-            />
           )}
         </div>
         
-        {/* Webview container with wrapper to prevent events when not selected */}
-        <div style={{ position: 'relative', flex: 1 }}>
+        {/* Webview and content area */}
+        <div 
+          style={{ 
+            flex: 1, 
+            position: 'relative',
+          }}
+        >
+          {/* Webview container - always visible */}
           <div
             ref={webviewRef}
+            data-shape-id={shape.id}
             style={{
               width: '100%',
               height: '100%',
-              position: 'relative',
-              // Always allow pointer events on the webview itself
-              pointerEvents: 'all',
+              position: 'absolute',
+              top: 0,
+              left: 0,
+              right: 0,
+              bottom: 0,
+              pointerEvents: 'all', // Always allow pointer events to the webview
             }}
-            onClick={(e) => e.stopPropagation()}
           />
           
-          {/* Invisible layer to block interactions when not selected */}
-          {!isSelected && (
+          {/* Interaction blocker when not in edit mode */}
+          {!isEditing && (
             <div
               style={{
                 position: 'absolute',
@@ -508,17 +548,39 @@ export class BrowserShapeUtil extends BaseBoxShapeUtil<BrowserShape> {
                 left: 0,
                 right: 0,
                 bottom: 0,
-                // This layer blocks all events when not selected
                 zIndex: 10,
+                cursor: 'pointer',
+                background: 'transparent', // Completely transparent
+                pointerEvents: 'all', // Block all events and handle the double-click
+                display: 'flex',
+                justifyContent: 'center',
+                alignItems: 'center',
               }}
-              onClick={(e) => {
+              onDoubleClick={(e) => {
                 e.stopPropagation();
                 this.editor.select(shape.id);
+                this.editor.setEditingShape(shape.id);
               }}
-            />
+            >
+              {/* Help text */}
+              <div style={{ 
+                position: 'absolute', 
+                bottom: '10px', 
+                left: '50%', 
+                transform: 'translateX(-50%)', 
+                fontSize: '12px',
+                color: '#666',
+                backgroundColor: 'rgba(255, 255, 255, 0.8)',
+                padding: '3px 8px',
+                borderRadius: '4px',
+                pointerEvents: 'none',
+              }}>
+                Double-click to interact
+              </div>
+            </div>
           )}
         </div>
-      </div>
+      </HTMLContainer>
     );
   }
   
