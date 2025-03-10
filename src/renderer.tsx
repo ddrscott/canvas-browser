@@ -6,15 +6,14 @@ import './index.css';
 import '@tldraw/tldraw/tldraw.css'
 import React from 'react'
 import ReactDOM from 'react-dom/client'
-import { 
+import {
   DefaultSizeStyle,
-  Tldraw, 
+  Tldraw,
   createShapeId,
   Editor
 } from '@tldraw/tldraw'
 import { BrowserShapeUtil } from './shapes/BrowserShape'
 import { MarkdownShapeUtil } from './shapes/MarkdownShape'
-import { ScrollableShapeUtil } from './shapes/ScrollableShape'
 
 /**
  * Button configuration for shape creation
@@ -40,7 +39,7 @@ interface ShapeButtonConfig {
  */
 function getPositionAtViewportCenter(editor: Editor, width: number, height: number) {
   let x = 0, y = 0;
-  
+
   const viewportBounds = editor.getViewportPageBounds();
 
   if (viewportBounds) {
@@ -61,19 +60,19 @@ function createShapeButton(config: ShapeButtonConfig): HTMLButtonElement {
   button.className = `${config.type}-button`;
   button.innerHTML = `${config.emoji} ${config.label}`;
   button.title = config.tooltip;
-  
+
   // Apply any additional styles
   if (config.styles) {
     Object.entries(config.styles).forEach(([property, value]) => {
       button.style[property as any] = value;
     });
   }
-  
+
   // Add click event listener
   button.addEventListener('click', () => {
     createShape(config);
   });
-  
+
   return button;
 }
 
@@ -86,35 +85,43 @@ function createShape(config: ShapeButtonConfig) {
     console.error('TLDraw editor not found');
     return;
   }
-  
+
   // Get position at viewport center
   const position = getPositionAtViewportCenter(editor, config.width, config.height);
-  
+
   // Create a new shape
   const id = createShapeId();
-  
+
+  // Prepare the props object with the extraProps
+  const props = {
+    w: config.width,
+    h: config.height,
+    ...config.extraProps
+  };
+
+  // If it's a markdown shape, ensure we add the required createdAt property
+  if (config.type === 'markdown') {
+    props.createdAt = Date.now();
+  }
+
   editor.createShape({
     id,
     type: config.type,
     x: position.x,
     y: position.y,
-    props: {
-      w: config.width,
-      h: config.height,
-      ...config.extraProps
-    }
+    props
   });
-  
+
   // Select the newly created shape
   editor.select(id);
-  
+
   // Start editing if needed
   if (config.startEditing) {
     setTimeout(() => {
       editor.setEditingShape(id);
     }, 100);
   }
-  
+
   console.log(`${config.type} shape added to canvas`);
 }
 
@@ -123,9 +130,9 @@ DefaultSizeStyle.setDefaultValue('s')
 function TldrawBrowserApp() {
   return (
     <div className="tldraw__editor">
-      <Tldraw 
-        persistenceKey="tldraw-browser-electron-v2" 
-        shapeUtils={[BrowserShapeUtil, MarkdownShapeUtil, ScrollableShapeUtil]}
+      <Tldraw
+        persistenceKey="tldraw-browser-electron-v2"
+        shapeUtils={[BrowserShapeUtil, MarkdownShapeUtil]}
         onMount={(editor) => {
           // Store editor in a global so we can access it from the button
           if (typeof window !== 'undefined') {
@@ -145,65 +152,53 @@ document.addEventListener('DOMContentLoaded', () => {
     // Create a React root and render the TLDraw component
     const root = ReactDOM.createRoot(appElement)
     root.render(React.createElement(TldrawBrowserApp))
-    
+
     console.log('TLDraw browser app initialized successfully');
-    
+
     // Create buttons and add them to the DOM after TLDraw is initialized
     setTimeout(() => {
       // Create container
       const container = document.createElement('div');
       container.className = 'browser-button-container';
-      
+
       // Define button configurations
       const buttonConfigs: ShapeButtonConfig[] = [
         {
           type: 'browser',
           emoji: '🌐',
-          label: 'Add Browser',
+          label: 'Web',
           tooltip: 'Insert Browser with Webview',
-          width: 600,
-          height: 400,
+          width: 480,
+          height: 800,
           extraProps: {
-            url: 'https://www.google.com'
+            url: 'https://www.google.com',
+            scrollX: 0,
+            scrollY: 0
           }
         },
         {
           type: 'markdown',
           emoji: '📝',
-          label: 'Add Markdown',
+          label: 'MD',
           tooltip: 'Insert Markdown Note',
           width: 400,
           height: 600,
-          startEditing: true,
-          styles: {
-            marginLeft: '10px'
-          }
-        },
-        {
-          type: 'scrollable',
-          emoji: '📜',
-          label: 'Add Scrollable',
-          tooltip: 'Insert Simple Scrollable Area',
-          width: 400,
-          height: 300,
-          startEditing: true,
           extraProps: {
-            text: 'This is a simple scrollable text area with basic text content. Try scrolling in both view and edit modes to see how it behaves.'
+            createdAt: Date.now() // Ensure createdAt is passed when creating a markdown shape
           },
+          startEditing: true,
           styles: {
-            marginLeft: '10px',
-            backgroundColor: '#9c27b0',
-            color: 'white'
+            marginLeft: '1em'
           }
         }
       ];
-      
+
       // Create and add buttons to container
       buttonConfigs.forEach(config => {
         const button = createShapeButton(config);
         container.appendChild(button);
       });
-      
+
       // Add container to document
       document.body.appendChild(container);
     }, 1000); // Delay for 1 second

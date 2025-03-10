@@ -1,6 +1,6 @@
 import React, { useCallback, useEffect, useState } from 'react';
-import { 
-  BaseBoxShapeUtil, 
+import {
+  BaseBoxShapeUtil,
   HTMLContainer,
   RecordProps,
   T,
@@ -18,35 +18,49 @@ const extractCodeBlocks = (text: string) => {
   const codeBlockRegex = /```(\w*)\n([\s\S]*?)```/g;
   const blocks: { language: string; code: string }[] = [];
   let match;
-  
+
   while ((match = codeBlockRegex.exec(text)) !== null) {
     blocks.push({
       language: match[1] || 'text',
       code: match[2].trim()
     });
   }
-  
+
   return blocks;
+};
+
+// Format a date nicely
+const formatDate = (timestamp: number): string => {
+  const date = new Date(timestamp);
+  return date.toLocaleString(undefined, {
+    year: 'numeric',
+    month: 'short',
+    day: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit'
+  });
 };
 
 // Define the markdown shape type
 type MarkdownShape = TLBaseShape<
   'markdown',
-  { 
+  {
     w: number;
     h: number;
     text: string;
+    createdAt: number; // Make it required instead of optional
   }
 >;
 
 // Create the markdown shape util class
 export class MarkdownShapeUtil extends BaseBoxShapeUtil<MarkdownShape> {
   static override type = 'markdown' as const;
-  
+
   static override props: RecordProps<MarkdownShape> = {
     w: T.number,
     h: T.number,
     text: T.string,
+    createdAt: T.number, // Changed from optional to required
   };
 
   // Enable editing
@@ -74,19 +88,20 @@ This is a **markdown** note with code highlighting support!
 \`\`\`javascript
 function hello() {
   console.log("Hello world!");
-  
+
   const items = [1, 2, 3, 4, 5];
-  
+
   items.forEach(item => {
     console.log(\`Processing item \${item}\`);
   });
-  
+
   return {
     success: true,
     message: "Operation completed successfully"
   };
 }
-\`\`\``
+\`\`\``,
+      createdAt: Date.now() // Set creation timestamp to current time
     };
   }
 
@@ -95,8 +110,8 @@ function hello() {
     return (code: string, language: string | undefined) => {
       if (!language) language = 'text';
       return (
-        <SyntaxHighlighter 
-          language={language} 
+        <SyntaxHighlighter
+          language={language}
           style={tomorrow}
           customStyle={{
             borderRadius: '4px',
@@ -114,7 +129,10 @@ function hello() {
     const [value, setValue] = useState(shape.props.text);
     const isEditing = this.editor.getEditingShapeId() === shape.id;
     const isSelected = this.editor.getSelectedShapeIds().includes(shape.id);
-    
+
+    // Format the creation date
+    const formattedDate = formatDate(shape.props.createdAt);
+
     // Handle text changes
     const handleTextChange = useCallback((value: string) => {
       setValue(value);
@@ -122,11 +140,12 @@ function hello() {
         id: shape.id,
         type: 'markdown',
         props: {
+          ...shape.props, // Preserve other props including createdAt
           text: value
         }
       });
-    }, [shape.id]);
-    
+    }, [shape.id, shape.props]);
+
     // Update value when shape text changes
     useEffect(() => {
       setValue(shape.props.text);
@@ -156,12 +175,12 @@ function hello() {
         onPointerDown={isEditing ? stopEventPropagation : undefined}
         onWheel={stopEventPropagation}
       >
-        {/* Toolbar */}
-        <div 
-          style={{ 
-            padding: '8px', 
-            borderBottom: '1px solid #eee', 
-            display: 'flex', 
+        {/* Toolbar with creation date */}
+        <div
+          style={{
+            padding: '8px',
+            borderBottom: '1px solid #eee',
+            display: 'flex',
             justifyContent: 'flex-end',
             alignItems: 'center',
             background: '#f8f8f8',
@@ -172,12 +191,12 @@ function hello() {
           onClick={(e) => e.stopPropagation()}
         >
           <div style={{ fontSize: '12px', color: '#666', marginRight: 'auto' }}>
-            {isEditing ? 'Edit Mode' : 'Markdown Note'}
+            {isEditing ? 'Edit Mode' : `Created: ${formattedDate}`}
           </div>
         </div>
-        
+
         {/* Content Area */}
-        <div 
+        <div
           style={{
             flex: 1,
             overflow: 'hidden',
@@ -208,7 +227,7 @@ function hello() {
               />
             </div>
           ) : (
-            <div 
+            <div
               className="markdown-code-view"
               style={{
                 height: '100%',
@@ -229,22 +248,22 @@ function hello() {
               {(() => {
                 const text = shape.props.text;
                 const codeBlocks = extractCodeBlocks(text);
-                
+
                 // Create a copy of the text to modify
                 let processedText = text;
-                
+
                 // Replace each code block with a placeholder
                 codeBlocks.forEach((block, index) => {
                   const codeBlockString = `\`\`\`${block.language}\n${block.code}\n\`\`\``;
                   processedText = processedText.replace(
-                    codeBlockString, 
+                    codeBlockString,
                     `__CODE_BLOCK_${index}__`
                   );
                 });
-                
+
                 // Split the text by our placeholders
                 const parts = processedText.split(/(__CODE_BLOCK_\d+__)/);
-                
+
                 // Map the parts, replacing placeholders with rendered code blocks
                 return parts.map((part, index) => {
                   const match = part.match(/__CODE_BLOCK_(\d+)__/);
@@ -283,10 +302,10 @@ function hello() {
                             let styledLine = line;
                             styledLine = styledLine.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
                             styledLine = styledLine.replace(/\*(.*?)\*/g, '<em>$1</em>');
-                            
+
                             return (
-                              <div 
-                                key={lineIndex} 
+                              <div
+                                key={lineIndex}
                                 style={{ marginBottom: '3px' }}
                                 dangerouslySetInnerHTML={{ __html: styledLine }}
                               />
@@ -301,14 +320,14 @@ function hello() {
             </div>
           )}
         </div>
-        
+
         {/* Help text shown when not editing */}
         {!isEditing && (
-          <div style={{ 
-            position: 'absolute', 
-            bottom: '5px', 
-            left: '50%', 
-            transform: 'translateX(-50%)', 
+          <div style={{
+            position: 'absolute',
+            bottom: '5px',
+            left: '50%',
+            transform: 'translateX(-50%)',
             fontSize: '12px',
             opacity: 0.5,
             pointerEvents: 'none'
@@ -319,11 +338,11 @@ function hello() {
       </HTMLContainer>
     );
   }
-  
+
   // Indicator for selection
   override indicator(shape: MarkdownShape) {
     return (
-      <rect 
+      <rect
         width={shape.props.w}
         height={shape.props.h}
         rx={8}

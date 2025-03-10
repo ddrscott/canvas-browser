@@ -1,1 +1,2 @@
-// We no longer need this file as the button functionality will be moved to a direct UI config
+// This file is no longer needed as the functionality has been moved to renderer.tsx
+// The button creation is now handled dynamically with createShapeButton function
