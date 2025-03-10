@@ -1,4 +1,4 @@
-import React, { useCallback, useRef, useEffect } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import { 
   BaseBoxShapeUtil, 
   HTMLContainer,
@@ -7,14 +7,27 @@ import {
   TLBaseShape,
   stopEventPropagation
 } from '@tldraw/tldraw';
-import ReactMarkdown from 'react-markdown';
-import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter';
-import { tomorrow } from 'react-syntax-highlighter/dist/esm/styles/prism';
-import rehypeRaw from 'rehype-raw';
-import rehypeSanitize from 'rehype-sanitize';
 import CodeMirror from '@uiw/react-codemirror';
 import { markdown } from '@codemirror/lang-markdown';
 import { EditorView } from '@codemirror/view';
+import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter';
+import { tomorrow } from 'react-syntax-highlighter/dist/esm/styles/prism';
+
+// Utility function to extract code blocks from markdown
+const extractCodeBlocks = (text: string) => {
+  const codeBlockRegex = /```(\w*)\n([\s\S]*?)```/g;
+  const blocks: { language: string; code: string }[] = [];
+  let match;
+  
+  while ((match = codeBlockRegex.exec(text)) !== null) {
+    blocks.push({
+      language: match[1] || 'text',
+      code: match[2].trim()
+    });
+  }
+  
+  return blocks;
+};
 
 // Define the markdown shape type
 type MarkdownShape = TLBaseShape<
@@ -23,7 +36,6 @@ type MarkdownShape = TLBaseShape<
     w: number;
     h: number;
     text: string;
-    isPreview: boolean;
   }
 >;
 
@@ -35,10 +47,9 @@ export class MarkdownShapeUtil extends BaseBoxShapeUtil<MarkdownShape> {
     w: T.number,
     h: T.number,
     text: T.string,
-    isPreview: T.boolean,
   };
 
-  // Enable editing - this is key for the shape to be editable!
+  // Enable editing
   override canEdit(): boolean {
     return true;
   }
@@ -48,17 +59,15 @@ export class MarkdownShapeUtil extends BaseBoxShapeUtil<MarkdownShape> {
     return {
       w: 400,
       h: 300,
-      isPreview: false,
       text: `# Markdown Note
 
-This is a **markdown** note with code highlighting and scrolling support!
+This is a **markdown** note with code highlighting support!
 
 ## Features
 
 - Syntax highlighting
 - Supports all markdown features
-- Toggle between edit and preview modes
-- Proper scrolling for long content
+- More features coming soon
 
 ## Code Example
 
@@ -66,7 +75,6 @@ This is a **markdown** note with code highlighting and scrolling support!
 function hello() {
   console.log("Hello world!");
   
-  // This is a longer code example to demonstrate scrolling
   const items = [1, 2, 3, 4, 5];
   
   items.forEach(item => {
@@ -78,88 +86,38 @@ function hello() {
     message: "Operation completed successfully"
   };
 }
-
-// Another function example
-function processData(data) {
-  if (!data) {
-    throw new Error("Data is required");
-  }
-  
-  return data.map(item => ({
-    ...item,
-    processed: true,
-    timestamp: new Date().toISOString()
-  }));
-}
-\`\`\`
-
-## More Content for Scrolling
-
-Lorem ipsum dolor sit amet, consectetur adipiscing elit. Nullam eget felis euismod, 
-rhoncus metus id, gravida est. Cras auctor efficitur libero, eu bibendum eros facilisis ac.
-
-> This is a blockquote that contains important information about the scrolling behavior
-> Multiple lines will help demonstrate how it handles overflow content
-
-### Tables
-
-| Feature | Supported | Notes |
-| ------- | --------- | ----- |
-| Headings | Yes | H1, H2, H3, etc. |
-| Lists | Yes | Ordered and unordered |
-| Code blocks | Yes | With syntax highlighting |
-| Tables | Yes | As shown here |
-| Images | Yes | Not demonstrated |
-| Links | Yes | [Visit TLDraw](https://tldraw.com) |
-
----
-
-The scrolling should work smoothly in both edit and preview modes!`
+\`\`\``
     };
   }
 
-  // Custom renderer for code blocks in markdown
-  private getComponents() {
-    return {
-      code({node, inline, className, children, ...props}: any) {
-        const match = /language-(\w+)/.exec(className || '');
-        return !inline && match ? (
-          <SyntaxHighlighter
-            style={tomorrow}
-            language={match[1]}
-            PreTag="div"
-            {...props}
-          >
-            {String(children).replace(/\n$/, '')}
-          </SyntaxHighlighter>
-        ) : (
-          <code className={className} {...props}>
-            {children}
-          </code>
-        );
-      }
+  // Helper method for code block syntax highlighting
+  private getCodeBlockRenderer() {
+    return (code: string, language: string | undefined) => {
+      if (!language) language = 'text';
+      return (
+        <SyntaxHighlighter 
+          language={language} 
+          style={tomorrow}
+          customStyle={{
+            borderRadius: '4px',
+            margin: '1em 0',
+          }}
+        >
+          {code}
+        </SyntaxHighlighter>
+      );
     };
   }
 
   // Render the component
   override component(shape: MarkdownShape) {
+    const [value, setValue] = useState(shape.props.text);
     const isEditing = this.editor.getEditingShapeId() === shape.id;
     const isSelected = this.editor.getSelectedShapeIds().includes(shape.id);
-    const components = this.getComponents();
-    
-    // Toggle preview on/off
-    const togglePreview = () => {
-      this.editor.updateShape<MarkdownShape>({
-        id: shape.id,
-        type: 'markdown',
-        props: {
-          isPreview: !shape.props.isPreview
-        }
-      });
-    };
     
     // Handle text changes
-    const handleTextChange = (value: string) => {
+    const handleTextChange = useCallback((value: string) => {
+      setValue(value);
       this.editor.updateShape<MarkdownShape>({
         id: shape.id,
         type: 'markdown',
@@ -167,10 +125,18 @@ The scrolling should work smoothly in both edit and preview modes!`
           text: value
         }
       });
-    };
+    }, [shape.id]);
     
-    // Create a ref for the iframe
-    const iframeRef = useRef<HTMLIFrameElement>(null);
+    // Update value when shape text changes
+    useEffect(() => {
+      setValue(shape.props.text);
+    }, [shape.props.text]);
+
+    // CodeMirror extensions
+    const extensions = [
+      markdown(),
+      EditorView.lineWrapping,
+    ];
 
     return (
       <HTMLContainer
@@ -185,10 +151,8 @@ The scrolling should work smoothly in both edit and preview modes!`
           overflow: 'hidden',
           boxShadow: '0 2px 10px rgba(0,0,0,0.1)',
           backgroundColor: 'white',
-          // Critical: We need pointer events for wheel events (scrolling) to work
           pointerEvents: 'all',
         }}
-        // Only pass stopEventPropagation when editing to make sure edit events don't bubble
         onPointerDown={isEditing ? stopEventPropagation : undefined}
         onWheel={stopEventPropagation}
       >
@@ -201,7 +165,6 @@ The scrolling should work smoothly in both edit and preview modes!`
             justifyContent: 'flex-end',
             alignItems: 'center',
             background: '#f8f8f8',
-            gap: '8px',
             height: '32px',
             boxSizing: 'border-box',
             flexShrink: 0,
@@ -209,28 +172,8 @@ The scrolling should work smoothly in both edit and preview modes!`
           onClick={(e) => e.stopPropagation()}
         >
           <div style={{ fontSize: '12px', color: '#666', marginRight: 'auto' }}>
-            {isEditing ? (shape.props.isPreview ? 'Preview Mode' : 'Edit Mode') : 'Markdown Note'}
+            {isEditing ? 'Edit Mode' : 'Markdown Note'}
           </div>
-          
-          {isEditing && (
-            <button
-              onClick={(e) => {
-                e.stopPropagation();
-                togglePreview();
-              }}
-              style={{
-                padding: '3px 8px',
-                borderRadius: '4px',
-                background: shape.props.isPreview ? '#e0e0e0' : '#f0f0f0',
-                border: '1px solid #ddd',
-                fontSize: '12px',
-                cursor: 'pointer',
-                userSelect: 'none'
-              }}
-            >
-              {shape.props.isPreview ? 'Edit' : 'Preview'}
-            </button>
-          )}
         </div>
         
         {/* Content Area */}
@@ -242,115 +185,119 @@ The scrolling should work smoothly in both edit and preview modes!`
           }}
         >
           {isEditing ? (
-            shape.props.isPreview ? (
-              // Preview Mode when editing
-              <div 
-                className="markdown-content"
+            <div
+              style={{
+                height: '100%',
+                overflow: 'hidden',
+              }}
+              onPointerDown={stopEventPropagation}
+              onClick={(e) => e.stopPropagation()}
+            >
+              <CodeMirror
+                value={value}
+                height="100%"
+                extensions={extensions}
+                onChange={handleTextChange}
                 style={{
                   height: '100%',
-                  width: '100%',
-                  overflow: 'auto',
-                  padding: '16px'
+                  fontSize: '14px',
                 }}
-                onWheel={stopEventPropagation}
-              >
-                <ReactMarkdown
-                  components={components}
-                  rehypePlugins={[rehypeRaw, rehypeSanitize]}
-                >
-                  {shape.props.text}
-                </ReactMarkdown>
-              </div>
-            ) : (
-              // Edit Mode
-              <div
-                style={{
-                  height: '100%',
-                  width: '100%',
-                  position: 'relative',
-                  overflow: 'hidden' // Ensure the container doesn't overflow
-                }}
-                className="tldraw-codemirror"
-              >
-                {/* Using an iframe to isolate the scrolling completely */}
-                <iframe
-                  ref={iframeRef}
-                  src="about:blank"
-                  style={{
-                    width: '100%',
-                    height: '100%',
-                    border: 'none',
-                    display: 'block',
-                    backgroundColor: '#1e1e1e'
-                  }}
-                  title="Markdown Editor"
-                  onLoad={() => {
-                    if (iframeRef.current) {
-                      const doc = iframeRef.current.contentDocument;
-                      if (doc) {
-                        // Create a basic editor inside the iframe
-                        doc.body.innerHTML = `
-                          <style>
-                            body, html {
-                              margin: 0;
-                              padding: 0;
-                              height: 100%;
-                              width: 100%;
-                              overflow: auto;
-                              background-color: #1e1e1e;
-                              color: #d4d4d4;
-                              font-family: monospace;
-                            }
-                            textarea {
-                              width: 100%;
-                              height: 100%;
-                              box-sizing: border-box;
-                              border: none;
-                              padding: 10px;
-                              background-color: transparent;
-                              color: inherit;
-                              font-size: 14px;
-                              line-height: 1.5;
-                              resize: none;
-                              outline: none;
-                            }
-                          </style>
-                          <textarea id="editor" spellcheck="false"></textarea>
-                        `;
-                        
-                        // Set the initial content
-                        const textarea = doc.getElementById('editor') as HTMLTextAreaElement;
-                        if (textarea) {
-                          textarea.value = shape.props.text;
-                          
-                          // Handle changes
-                          textarea.addEventListener('input', () => {
-                            handleTextChange(textarea.value);
-                          });
-                        }
-                      }
-                    }
-                  }}
-                />
-              </div>
-            )
+                onClick={(e) => e.stopPropagation()}
+                onPointerDown={(e) => e.stopPropagation()}
+                onKeyDown={(e) => e.stopPropagation()}
+              />
+            </div>
           ) : (
-            // View Mode (not editing)
             <div 
-              className="markdown-content"
+              className="markdown-code-view"
               style={{
                 height: '100%',
                 width: '100%',
                 overflow: 'auto',
-                padding: '16px'
+                padding: '16px',
+                fontSize: '14px',
+                lineHeight: '1.5',
+                fontFamily: 'system-ui, -apple-system, BlinkMacSystemFont, sans-serif',
+                color: '#333',
+              }}
+              onDoubleClick={(e) => {
+                e.stopPropagation();
+                this.editor.select(shape.id);
+                this.editor.setEditingShape(shape.id);
               }}
             >
-              <ReactMarkdown
-                components={components}
-                rehypePlugins={[rehypeRaw, rehypeSanitize]}
-              >
-                {shape.props.text}
-              </ReactMarkdown>
+              {(() => {
+                const text = shape.props.text;
+                const codeBlocks = extractCodeBlocks(text);
+                
+                // Create a copy of the text to modify
+                let processedText = text;
+                
+                // Replace each code block with a placeholder
+                codeBlocks.forEach((block, index) => {
+                  const codeBlockString = `\`\`\`${block.language}\n${block.code}\n\`\`\``;
+                  processedText = processedText.replace(
+                    codeBlockString, 
+                    `__CODE_BLOCK_${index}__`
+                  );
+                });
+                
+                // Split the text by our placeholders
+                const parts = processedText.split(/(__CODE_BLOCK_\d+__)/);
+                
+                // Map the parts, replacing placeholders with rendered code blocks
+                return parts.map((part, index) => {
+                  const match = part.match(/__CODE_BLOCK_(\d+)__/);
+                  if (match) {
+                    const blockIndex = parseInt(match[1]);
+                    const block = codeBlocks[blockIndex];
+                    return (
+                      <SyntaxHighlighter
+                        key={index}
+                        language={block.language}
+                        style={tomorrow}
+                        customStyle={{
+                          borderRadius: '4px',
+                          margin: '1em 0',
+                        }}
+                      >
+                        {block.code}
+                      </SyntaxHighlighter>
+                    );
+                  } else {
+                    // For non-code parts, we render them as pre-formatted text with basic markdown styling
+                    return (
+                      <div key={index} style={{ whiteSpace: 'pre-wrap', marginBottom: '8px' }}>
+                        {part.split('\n').map((line, lineIndex) => {
+                          // Very basic markdown styling for headers
+                          if (line.startsWith('# ')) {
+                            return <h1 key={lineIndex} style={{ margin: '0.5em 0' }}>{line.substring(2)}</h1>;
+                          } else if (line.startsWith('## ')) {
+                            return <h2 key={lineIndex} style={{ margin: '0.5em 0' }}>{line.substring(3)}</h2>;
+                          } else if (line.startsWith('### ')) {
+                            return <h3 key={lineIndex} style={{ margin: '0.5em 0' }}>{line.substring(4)}</h3>;
+                          } else if (line.startsWith('- ')) {
+                            return <div key={lineIndex} style={{ marginLeft: '10px' }}>• {line.substring(2)}</div>;
+                          } else {
+                            // Basic styling for bold and italic (very simplified)
+                            let styledLine = line;
+                            styledLine = styledLine.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
+                            styledLine = styledLine.replace(/\*(.*?)\*/g, '<em>$1</em>');
+                            
+                            return (
+                              <div 
+                                key={lineIndex} 
+                                style={{ marginBottom: '3px' }}
+                                dangerouslySetInnerHTML={{ __html: styledLine }}
+                              />
+                            );
+                          }
+                        })}
+                      </div>
+                    );
+                  }
+                });
+              })()}
             </div>
           )}
         </div>
@@ -371,26 +318,6 @@ The scrolling should work smoothly in both edit and preview modes!`
         )}
       </HTMLContainer>
     );
-  }
-  
-  // Add animation when exiting edit mode
-  override onEditEnd(shape: MarkdownShape) {
-    // Reset to non-preview mode for next edit
-    if (shape.props.isPreview) {
-      this.editor.updateShape<MarkdownShape>({
-        id: shape.id,
-        type: 'markdown',
-        props: {
-          isPreview: false
-        }
-      });
-    }
-  }
-  
-  // Override isEditing to always return true when a shape is selected
-  // This ensures it stays editable
-  override isEditing(shape: MarkdownShape, id: string): boolean {
-    return this.editor.getEditingShapeId() === id;
   }
   
   // Indicator for selection

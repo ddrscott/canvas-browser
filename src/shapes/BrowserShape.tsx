@@ -81,7 +81,10 @@ export class BrowserShapeUtil extends BaseBoxShapeUtil<BrowserShape> {
           url: urlToLoad,
           // Reset scroll position for new navigation
           scrollX: 0,
-          scrollY: 0
+          scrollY: 0,
+          // Explicitly preserve dimensions
+          w: shape.props.w,
+          h: shape.props.h
         }
       });
       
@@ -232,12 +235,15 @@ export class BrowserShapeUtil extends BaseBoxShapeUtil<BrowserShape> {
             setUrl(event.url);
             
             // Save the new URL to the shape when navigation occurs
+            // Preserve the current width and height to prevent resizing
             this.editor.updateShape({
               id: shape.id,
               type: 'browser',
               props: {
                 ...shape.props,
-                url: event.url
+                url: event.url,
+                w: shape.props.w,
+                h: shape.props.h
               }
             });
           }
@@ -249,12 +255,15 @@ export class BrowserShapeUtil extends BaseBoxShapeUtil<BrowserShape> {
             setUrl(event.url);
             
             // Save the new URL to the shape
+            // Preserve the current width and height to prevent resizing
             this.editor.updateShape({
               id: shape.id,
               type: 'browser',
               props: {
                 ...shape.props,
-                url: event.url
+                url: event.url,
+                w: shape.props.w,
+                h: shape.props.h
               }
             });
           }
@@ -288,7 +297,9 @@ export class BrowserShapeUtil extends BaseBoxShapeUtil<BrowserShape> {
                   scrollX: state.scrollX,
                   scrollY: state.scrollY,
                   innerHTML: state.html,
-                  url: state.currentUrl
+                  url: state.currentUrl,
+                  w: shape.props.w,
+                  h: shape.props.h
                 }
               });
             }
