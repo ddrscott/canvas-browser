@@ -9,10 +9,34 @@ import ReactDOM from 'react-dom/client'
 import { 
   DefaultSizeStyle,
   Tldraw, 
-  createShapeId
+  createShapeId,
+  Editor
 } from '@tldraw/tldraw'
 import { BrowserShapeUtil } from './shapes/BrowserShape'
 import { MarkdownShapeUtil } from './shapes/MarkdownShape'
+import { ScrollableShapeUtil } from './shapes/ScrollableShape'
+
+/**
+ * Calculate the position to place a shape at viewport center
+ * @param editor The TLDraw editor instance
+ * @param width Width of the shape to be centered
+ * @param height Height of the shape to be centered
+ * @returns {x, y} coordinates to place the shape
+ */
+function getPositionAtViewportCenter(editor: Editor, width: number, height: number) {
+  let x = 0, y = 0;
+  
+  const viewportBounds = editor.getViewportPageBounds();
+
+  if (viewportBounds) {
+      const centerX = viewportBounds.width ? viewportBounds.x + (viewportBounds.width / 2) : viewportBounds.x;
+      const centerY = viewportBounds.height ? viewportBounds.y + (viewportBounds.height / 2) : viewportBounds.y;
+
+      x = centerX - (width / 2);
+      y = centerY - (height / 2);
+  }
+  return { x, y };
+}
 
 DefaultSizeStyle.setDefaultValue('s')
 // The main TLDraw application component
@@ -22,47 +46,8 @@ function TldrawBrowserApp() {
     <div className="tldraw__editor">
       <Tldraw 
         persistenceKey="tldraw-browser-electron-v2" 
-        shapeUtils={[BrowserShapeUtil, MarkdownShapeUtil]}
+        shapeUtils={[BrowserShapeUtil, MarkdownShapeUtil, ScrollableShapeUtil]}
         onMount={(editor) => {
-          // Create a browser shape ID
-          const browserShapeId = createShapeId('browser')
-          
-          // Only create the shape if it doesn't exist yet
-          if (!editor.getShape(browserShapeId)) {
-            // Create a browser shape at startup with safe positioning
-            let x = 100, y = 100;
-            try {
-              const viewportBounds = editor.getViewportPageBounds();
-              if (viewportBounds && 
-                  typeof viewportBounds.centerX === 'number' && 
-                  !isNaN(viewportBounds.centerX) &&
-                  typeof viewportBounds.centerY === 'number' && 
-                  !isNaN(viewportBounds.centerY)) {
-                x = viewportBounds.centerX - 300;
-                y = viewportBounds.centerY - 200;
-              }
-            } catch (err) {
-              console.log('Using default browser position', err);
-            }
-            
-            editor.createShape({
-              id: browserShapeId,
-              type: 'browser',
-              x,
-              y,
-              props: {
-                w: 600,
-                h: 400,
-                url: 'https://www.google.com'
-              }
-            })
-            
-            // Select the shape and zoom to it
-            editor.select(browserShapeId)
-            editor.zoomToSelection()
-            console.log('Browser shape created at startup')
-          }
-          
           // Store editor in a global so we can access it from the button
           if (typeof window !== 'undefined') {
             (window as any).tldrawEditor = editor
@@ -105,21 +90,10 @@ document.addEventListener('DOMContentLoaded', () => {
           return;
         }
         
-        // Get the current viewport center point with fallback
-        let x = 100, y = 100;
-        try {
-          const viewportBounds = editor.getViewportPageBounds();
-          if (viewportBounds && 
-              typeof viewportBounds.centerX === 'number' && 
-              !isNaN(viewportBounds.centerX) &&
-              typeof viewportBounds.centerY === 'number' && 
-              !isNaN(viewportBounds.centerY)) {
-            x = viewportBounds.centerX - 300; // Center horizontally
-            y = viewportBounds.centerY - 200; // Center vertically
-          }
-        } catch (err) {
-          console.error('Error getting viewport bounds, using default position', err);
-        }
+        // Get position at viewport center
+        const browserWidth = 600;
+        const browserHeight = 400;
+        const position = getPositionAtViewportCenter(editor, browserWidth, browserHeight);
         
         // Create a new browser shape
         const id = createShapeId();
@@ -127,11 +101,11 @@ document.addEventListener('DOMContentLoaded', () => {
         editor.createShape({
           id,
           type: 'browser',
-          x, // Use calculated or default x
-          y, // Use calculated or default y
+          x: position.x,
+          y: position.y,
           props: {
-            w: 600,
-            h: 400,
+            w: browserWidth,
+            h: browserHeight,
             url: 'https://www.google.com'
           }
         });
@@ -158,21 +132,10 @@ document.addEventListener('DOMContentLoaded', () => {
           return;
         }
         
-        // Get the current viewport center point with fallback
-        let x = 100, y = 100;
-        try {
-          const viewportBounds = editor.getViewportPageBounds();
-          if (viewportBounds && 
-              typeof viewportBounds.centerX === 'number' && 
-              !isNaN(viewportBounds.centerX) &&
-              typeof viewportBounds.centerY === 'number' && 
-              !isNaN(viewportBounds.centerY)) {
-            x = viewportBounds.centerX - 200; // Center horizontally
-            y = viewportBounds.centerY - 150; // Center vertically
-          }
-        } catch (err) {
-          console.error('Error getting viewport bounds, using default position', err);
-        }
+        // Get position at viewport center
+        const markdownWidth = 400;
+        const markdownHeight = 600;
+        const position = getPositionAtViewportCenter(editor, markdownWidth, markdownHeight);
         
         // Create a new markdown shape
         const id = createShapeId();
@@ -180,41 +143,11 @@ document.addEventListener('DOMContentLoaded', () => {
         editor.createShape({
           id,
           type: 'markdown',
-          x, // Use calculated or default x
-          y, // Use calculated or default y
+          x: position.x,
+          y: position.y,
           props: {
-            w: 400,
-            h: 600,
-            text: `# Markdown Note
-
-This is a **markdown** note with code highlighting and scrolling support!
-
-## Features
-
-- Syntax highlighting
-- Supports all markdown features
-- Toggle between edit and preview modes
-- Proper scrolling for long content
-
-## Code Example
-
-\`\`\`javascript
-function hello() {
-  console.log("Hello world!");
-  
-  // This is a longer code example to demonstrate scrolling
-  const items = [1, 2, 3, 4, 5];
-  
-  items.forEach(item => {
-    console.log(\`Processing item \${item}\`);
-  });
-  
-  return {
-    success: true,
-    message: "Operation completed successfully"
-  };
-}
-\`\`\``
+            w: markdownWidth,
+            h: markdownHeight,
           }
         });
         
@@ -229,9 +162,59 @@ function hello() {
         console.log('Markdown shape added to canvas');
       });
       
+      // Create scrollable button
+      const scrollableButton = document.createElement('button');
+      scrollableButton.className = 'scrollable-button';
+      scrollableButton.innerHTML = '📜 Add Scrollable';
+      scrollableButton.title = 'Insert Simple Scrollable Area';
+      scrollableButton.style.marginLeft = '10px';
+      scrollableButton.style.backgroundColor = '#9c27b0';
+      scrollableButton.style.color = 'white';
+      
+      // Add scrollable button click event listener
+      scrollableButton.addEventListener('click', () => {
+        // Get the editor from the global we set
+        const editor = (window as any).tldrawEditor;
+        if (!editor) {
+          console.error('TLDraw editor not found');
+          return;
+        }
+        
+        // Get position at viewport center
+        const scrollableWidth = 400;
+        const scrollableHeight = 300;
+        const position = getPositionAtViewportCenter(editor, scrollableWidth, scrollableHeight);
+        
+        // Create a new scrollable shape
+        const id = createShapeId();
+        
+        editor.createShape({
+          id,
+          type: 'scrollable',
+          x: position.x,
+          y: position.y,
+          props: {
+            w: scrollableWidth,
+            h: scrollableHeight,
+            text: 'This is a simple scrollable text area with basic text content. Try scrolling in both view and edit modes to see how it behaves.'
+          }
+        });
+        
+        // Select the newly created shape
+        editor.select(id);
+        
+        // Start editing the shape immediately
+        setTimeout(() => {
+          editor.setEditingShape(id);
+        }, 100);
+        
+        console.log('Scrollable shape added to canvas');
+      });
+      
       // Add buttons to container
       container.appendChild(browserButton);
       container.appendChild(markdownButton);
+      container.appendChild(scrollableButton);
       
       // Add container to document
       document.body.appendChild(container);

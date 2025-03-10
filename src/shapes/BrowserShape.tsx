@@ -36,8 +36,8 @@ export class BrowserShapeUtil extends BaseBoxShapeUtil<BrowserShape> {
   // Default props when created
   override getDefaultProps() {
     return {
-      w: 600,
-      h: 400,
+      w: 400,
+      h: 800,
       url: 'https://www.google.com',
       scrollX: 0,
       scrollY: 0,
@@ -47,7 +47,6 @@ export class BrowserShapeUtil extends BaseBoxShapeUtil<BrowserShape> {
 
   // Render the component
   override component(shape: BrowserShape) {
-    const isEditing = this.editor.getEditingShapeId() === shape.id;
     const isReady = useDelaySvgExport();
     const isSelected = this.editor.getSelectedShapeIds().includes(shape.id);
     
@@ -339,13 +338,13 @@ export class BrowserShapeUtil extends BaseBoxShapeUtil<BrowserShape> {
           flexDirection: 'column',
           borderRadius: '8px',
           overflow: 'hidden',
-          boxShadow: isSelected ? '0 0 0 2px #4285f4, 0 2px 10px rgba(0,0,0,0.1)' : '0 2px 10px rgba(0,0,0,0.1)',
+          boxShadow: '0 2px 10px rgba(0,0,0,0.1)',
           background: 'white',
           // Main container must remain clickable for selection
           pointerEvents: 'all', 
           position: 'relative',
           // Subtle visual indicator when not selected
-          opacity: isSelected ? 1 : 0.95,
+          // opacity: isSelected ? 1 : 0.95,
           // Add transition for smooth appearance
           transition: 'box-shadow 0.2s ease, opacity 0.2s ease',
         }}

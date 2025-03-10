@@ -1,6 +1,7 @@
-import React from 'react';
+import React, { useCallback, useRef, useEffect } from 'react';
 import { 
   BaseBoxShapeUtil, 
+  HTMLContainer,
   RecordProps,
   T,
   TLBaseShape,
@@ -13,6 +14,7 @@ import rehypeRaw from 'rehype-raw';
 import rehypeSanitize from 'rehype-sanitize';
 import CodeMirror from '@uiw/react-codemirror';
 import { markdown } from '@codemirror/lang-markdown';
+import { EditorView } from '@codemirror/view';
 
 // Define the markdown shape type
 type MarkdownShape = TLBaseShape<
@@ -21,6 +23,7 @@ type MarkdownShape = TLBaseShape<
     w: number;
     h: number;
     text: string;
+    isPreview: boolean;
   }
 >;
 
@@ -32,6 +35,7 @@ export class MarkdownShapeUtil extends BaseBoxShapeUtil<MarkdownShape> {
     w: T.number,
     h: T.number,
     text: T.string,
+    isPreview: T.boolean,
   };
 
   // Enable editing - this is key for the shape to be editable!
@@ -44,6 +48,7 @@ export class MarkdownShapeUtil extends BaseBoxShapeUtil<MarkdownShape> {
     return {
       w: 400,
       h: 300,
+      isPreview: false,
       text: `# Markdown Note
 
 This is a **markdown** note with code highlighting and scrolling support!
@@ -113,51 +118,9 @@ The scrolling should work smoothly in both edit and preview modes!`
     };
   }
 
-  // Add support for scrolling
-  override canScroll(): boolean {
-    return true;
-  }
-
-  // Render the component
-  override component(shape: MarkdownShape) {
-    // Check if this shape is currently being edited
-    const isEditing = this.editor.getEditingShapeId() === shape.id;
-    const isSelected = this.editor.getSelectedShapeIds().includes(shape.id);
-    
-    // Local state for the text value
-    const [text, setText] = React.useState(shape.props.text);
-    
-    // Toggle between preview and edit mode
-    const [isPreview, setIsPreview] = React.useState(false);
-    
-    // Handle text changes from CodeMirror
-    const handleTextChange = (value: string) => {
-      setText(value);
-      
-      // Update the shape with new text
-      this.editor.updateShape({
-        id: shape.id,
-        type: 'markdown',
-        props: {
-          ...shape.props,
-          text: value
-        }
-      });
-    };
-    
-    // Toggle between edit and preview mode
-    const togglePreview = (e: React.MouseEvent) => {
-      e.stopPropagation();
-      setIsPreview(!isPreview);
-    };
-    
-    // Update local state when props change
-    React.useEffect(() => {
-      setText(shape.props.text);
-    }, [shape.props.text]);
-    
-    // Custom renderer for code blocks in markdown
-    const components = {
+  // Custom renderer for code blocks in markdown
+  private getComponents() {
+    return {
       code({node, inline, className, children, ...props}: any) {
         const match = /language-(\w+)/.exec(className || '');
         return !inline && match ? (
@@ -176,27 +139,58 @@ The scrolling should work smoothly in both edit and preview modes!`
         );
       }
     };
+  }
+
+  // Render the component
+  override component(shape: MarkdownShape) {
+    const isEditing = this.editor.getEditingShapeId() === shape.id;
+    const isSelected = this.editor.getSelectedShapeIds().includes(shape.id);
+    const components = this.getComponents();
     
+    // Toggle preview on/off
+    const togglePreview = () => {
+      this.editor.updateShape<MarkdownShape>({
+        id: shape.id,
+        type: 'markdown',
+        props: {
+          isPreview: !shape.props.isPreview
+        }
+      });
+    };
+    
+    // Handle text changes
+    const handleTextChange = (value: string) => {
+      this.editor.updateShape<MarkdownShape>({
+        id: shape.id,
+        type: 'markdown',
+        props: {
+          text: value
+        }
+      });
+    };
+    
+    // Create a ref for the iframe
+    const iframeRef = useRef<HTMLIFrameElement>(null);
+
     return (
-      <div
+      <HTMLContainer
+        id={shape.id}
+        className={isEditing ? 'tldraw-editing-container' : undefined}
         style={{
-          width: shape.props.w,
-          height: shape.props.h,
+          width: '100%',
+          height: '100%',
           display: 'flex',
           flexDirection: 'column',
           borderRadius: '8px',
           overflow: 'hidden',
-          boxShadow: isSelected ? '0 0 0 2px #4285f4, 0 2px 10px rgba(0,0,0,0.1)' : '0 2px 10px rgba(0,0,0,0.1)',
-          background: 'white',
-          pointerEvents: 'all', 
-          position: 'relative',
-          transition: 'box-shadow 0.2s ease',
+          boxShadow: '0 2px 10px rgba(0,0,0,0.1)',
+          backgroundColor: 'white',
+          // Critical: We need pointer events for wheel events (scrolling) to work
+          pointerEvents: 'all',
         }}
-        onClick={(e) => {
-          if (!isSelected) {
-            this.editor.select(shape.id);
-          }
-        }}
+        // Only pass stopEventPropagation when editing to make sure edit events don't bubble
+        onPointerDown={isEditing ? stopEventPropagation : undefined}
+        onWheel={stopEventPropagation}
       >
         {/* Toolbar */}
         <div 
@@ -209,99 +203,159 @@ The scrolling should work smoothly in both edit and preview modes!`
             background: '#f8f8f8',
             gap: '8px',
             height: '32px',
-            boxSizing: 'border-box'
+            boxSizing: 'border-box',
+            flexShrink: 0,
           }}
+          onClick={(e) => e.stopPropagation()}
         >
-          {isEditing ? (
-            <>
-              <div style={{ fontSize: '12px', color: '#666', marginRight: 'auto' }}>
-                {isPreview ? 'Preview Mode' : 'Edit Mode'}
-              </div>
-              <button
-                onClick={togglePreview}
-                style={{
-                  padding: '3px 8px',
-                  borderRadius: '4px',
-                  background: isPreview ? '#e0e0e0' : '#f0f0f0',
-                  border: '1px solid #ddd',
-                  fontSize: '12px',
-                  cursor: 'pointer',
-                  userSelect: 'none'
-                }}
-              >
-                {isPreview ? 'Edit' : 'Preview'}
-              </button>
-            </>
-          ) : (
-            <div style={{ fontSize: '12px', color: '#666', marginRight: 'auto' }}>
-              Markdown Note
-            </div>
+          <div style={{ fontSize: '12px', color: '#666', marginRight: 'auto' }}>
+            {isEditing ? (shape.props.isPreview ? 'Preview Mode' : 'Edit Mode') : 'Markdown Note'}
+          </div>
+          
+          {isEditing && (
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                togglePreview();
+              }}
+              style={{
+                padding: '3px 8px',
+                borderRadius: '4px',
+                background: shape.props.isPreview ? '#e0e0e0' : '#f0f0f0',
+                border: '1px solid #ddd',
+                fontSize: '12px',
+                cursor: 'pointer',
+                userSelect: 'none'
+              }}
+            >
+              {shape.props.isPreview ? 'Edit' : 'Preview'}
+            </button>
           )}
         </div>
         
         {/* Content Area */}
-        <div style={{ position: 'relative', flex: 1 }}>
-          <div
-            style={{
-              width: '100%',
-              height: '100%',
-              position: 'relative',
-              overflow: 'auto',
-              padding: (isEditing && !isPreview) ? 0 : '16px',
-            }}
-            onClick={(e) => e.stopPropagation()}
-          >
-            {isEditing && !isPreview ? (
-              // Edit Mode
-              <CodeMirror
-                value={text}
-                height="100%"
-                onChange={handleTextChange}
-                extensions={[markdown()]}
-                theme="dark"
-                basicSetup={{
-                  lineNumbers: true,
-                  highlightActiveLine: true,
-                  highlightActiveLineGutter: true,
-                  foldGutter: true
-                }}
+        <div 
+          style={{
+            flex: 1,
+            overflow: 'hidden',
+            position: 'relative',
+          }}
+        >
+          {isEditing ? (
+            shape.props.isPreview ? (
+              // Preview Mode when editing
+              <div 
+                className="markdown-content"
                 style={{
-                  height: '100%'
+                  height: '100%',
+                  width: '100%',
+                  overflow: 'auto',
+                  padding: '16px'
                 }}
-              />
-            ) : (
-              // Preview Mode (both when editing and not)
-              <div className="markdown-content">
+                onWheel={stopEventPropagation}
+              >
                 <ReactMarkdown
                   components={components}
                   rehypePlugins={[rehypeRaw, rehypeSanitize]}
                 >
-                  {text}
+                  {shape.props.text}
                 </ReactMarkdown>
               </div>
-            )}
-          </div>
-          
-          {/* Invisible layer to block interactions when not selected/editing */}
-          {!isSelected && !isEditing && (
-            <div
+            ) : (
+              // Edit Mode
+              <div
+                style={{
+                  height: '100%',
+                  width: '100%',
+                  position: 'relative',
+                  overflow: 'hidden' // Ensure the container doesn't overflow
+                }}
+                className="tldraw-codemirror"
+              >
+                {/* Using an iframe to isolate the scrolling completely */}
+                <iframe
+                  ref={iframeRef}
+                  src="about:blank"
+                  style={{
+                    width: '100%',
+                    height: '100%',
+                    border: 'none',
+                    display: 'block',
+                    backgroundColor: '#1e1e1e'
+                  }}
+                  title="Markdown Editor"
+                  onLoad={() => {
+                    if (iframeRef.current) {
+                      const doc = iframeRef.current.contentDocument;
+                      if (doc) {
+                        // Create a basic editor inside the iframe
+                        doc.body.innerHTML = `
+                          <style>
+                            body, html {
+                              margin: 0;
+                              padding: 0;
+                              height: 100%;
+                              width: 100%;
+                              overflow: auto;
+                              background-color: #1e1e1e;
+                              color: #d4d4d4;
+                              font-family: monospace;
+                            }
+                            textarea {
+                              width: 100%;
+                              height: 100%;
+                              box-sizing: border-box;
+                              border: none;
+                              padding: 10px;
+                              background-color: transparent;
+                              color: inherit;
+                              font-size: 14px;
+                              line-height: 1.5;
+                              resize: none;
+                              outline: none;
+                            }
+                          </style>
+                          <textarea id="editor" spellcheck="false"></textarea>
+                        `;
+                        
+                        // Set the initial content
+                        const textarea = doc.getElementById('editor') as HTMLTextAreaElement;
+                        if (textarea) {
+                          textarea.value = shape.props.text;
+                          
+                          // Handle changes
+                          textarea.addEventListener('input', () => {
+                            handleTextChange(textarea.value);
+                          });
+                        }
+                      }
+                    }
+                  }}
+                />
+              </div>
+            )
+          ) : (
+            // View Mode (not editing)
+            <div 
+              className="markdown-content"
               style={{
-                position: 'absolute',
-                top: 0,
-                left: 0,
-                right: 0,
-                bottom: 0,
-                zIndex: 10,
+                height: '100%',
+                width: '100%',
+                overflow: 'auto',
+                padding: '16px'
               }}
-              onClick={(e) => {
-                e.stopPropagation();
-                this.editor.select(shape.id);
-              }}
-            />
+            >
+              <ReactMarkdown
+                components={components}
+                rehypePlugins={[rehypeRaw, rehypeSanitize]}
+              >
+                {shape.props.text}
+              </ReactMarkdown>
+            </div>
           )}
         </div>
         
-        {/* Help text */}
+        {/* Help text shown when not editing */}
         {!isEditing && (
           <div style={{ 
             position: 'absolute', 
@@ -315,8 +369,28 @@ The scrolling should work smoothly in both edit and preview modes!`
             Double-click to edit
           </div>
         )}
-      </div>
+      </HTMLContainer>
     );
+  }
+  
+  // Add animation when exiting edit mode
+  override onEditEnd(shape: MarkdownShape) {
+    // Reset to non-preview mode for next edit
+    if (shape.props.isPreview) {
+      this.editor.updateShape<MarkdownShape>({
+        id: shape.id,
+        type: 'markdown',
+        props: {
+          isPreview: false
+        }
+      });
+    }
+  }
+  
+  // Override isEditing to always return true when a shape is selected
+  // This ensures it stays editable
+  override isEditing(shape: MarkdownShape, id: string): boolean {
+    return this.editor.getEditingShapeId() === id;
   }
   
   // Indicator for selection
