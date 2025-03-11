@@ -201,14 +201,6 @@ document.addEventListener('DOMContentLoaded', () => {
 
       // Add container to document
       document.body.appendChild(container);
-    }, 1000); // Delay for 1 second
-  }
-});
-
-// Handle window resize events to ensure TLDraw fits the window
-window.addEventListener('resize', () => {
-  const tldrawEditor = document.querySelector('.tldraw__editor');
-  if (tldrawEditor) {
-    console.log('Resizing TLDraw editor');
+    }, 100); // Delay for 1 second
   }
 });

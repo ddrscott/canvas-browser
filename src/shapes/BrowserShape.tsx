@@ -37,34 +37,28 @@ export class BrowserShapeUtil extends BaseBoxShapeUtil<BrowserShape> {
 
   // Preserve scroll position when edit mode ends
   override onEditEnd(shape: BrowserShape): void {
-    // Try to immediately save the webview state to ensure the current scroll position is preserved
-    try {
-      const webview = document.querySelector(`[data-shape-id="${shape.id}"] webview`) as any;
-      if (webview) {
-        webview.executeJavaScript(`
-          {
-            scrollX: window.scrollX,
-            scrollY: window.scrollY,
-            html: document.documentElement.outerHTML,
-            currentUrl: window.location.href
-          }
-        `).then((state: {scrollX: number, scrollY: number, html: string, currentUrl: string}) => {
-          this.editor.updateShape({
-            id: shape.id,
-            type: 'browser',
-            props: {
-              ...shape.props,
-              scrollX: state.scrollX,
-              scrollY: state.scrollY,
-              innerHTML: state.html,
-              url: state.currentUrl
-            }
-          });
-        }).catch(err => console.error('Error saving webview state on edit end:', err));
+    const webview = document.querySelector(`[data-shape-id="${shape.id}"] webview`) as any;
+    if (!webview) return;
+    webview.executeJavaScript(`
+      {
+        scrollX: window.scrollX,
+        scrollY: window.scrollY,
+        html: document.documentElement.outerHTML,
+        currentUrl: window.location.href
       }
-    } catch (err) {
-      console.error('Failed to save webview state on edit end:', err);
-    }
+    `).then((state: {scrollX: number, scrollY: number, html: string, currentUrl: string}) => {
+      this.editor.updateShape({
+        id: shape.id,
+        type: 'browser',
+        props: {
+          ...shape.props,
+          scrollX: state.scrollX,
+          scrollY: state.scrollY,
+          innerHTML: state.html,
+          url: state.currentUrl
+        }
+      });
+    }).catch(err => console.error('Error saving webview state on edit end:', err));
   }
 
   // Default props when created
