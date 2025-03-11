@@ -15,22 +15,6 @@ import { markedHighlight } from "marked-highlight";
 import hljs from 'highlight.js';
 
 
-// Utility function to extract code blocks from markdown
-const extractCodeBlocks = (text: string) => {
-  const codeBlockRegex = /```(\w*)\n([\s\S]*?)```/g;
-  const blocks: { language: string; code: string }[] = [];
-  let match;
-
-  while ((match = codeBlockRegex.exec(text)) !== null) {
-    blocks.push({
-      language: match[1] || 'text',
-      code: match[2].trim()
-    });
-  }
-
-  return blocks;
-};
-
 // Format a date nicely
 const formatDate = (timestamp: number): string => {
   const date = new Date(timestamp);
@@ -43,7 +27,7 @@ const formatDate = (timestamp: number): string => {
   });
 };
 
-const marked = new Marked(
+export const marked = new Marked(
   markedHighlight({
 	emptyLangClass: 'hljs',
     langPrefix: 'hljs language-',

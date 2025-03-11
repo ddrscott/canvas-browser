@@ -8,6 +8,8 @@ import {
     stopEventPropagation
 } from '@tldraw/tldraw';
 
+import { marked } from './MarkdownShape';
+
 // Define the ExaSearchResult shape type
 type ExaSearchResultShape = TLBaseShape<
 'exaSearchResult',
@@ -72,6 +74,8 @@ export class ExaSearchResultShapeUtil extends BaseBoxShapeUtil<ExaSearchResultSh
 
         const data = shape.props.resultData as any;
 
+        const summaryHtml = data.summary ? marked.parse(data.summary) : '';
+
         return (
             <HTMLContainer
                 id={shape.id}
@@ -101,15 +105,22 @@ export class ExaSearchResultShapeUtil extends BaseBoxShapeUtil<ExaSearchResultSh
                     {data.author && <small className="text-gray-500 text-xs">by {data.author}</small>}
                     {data.url && <small className="text-gray-500 text-xs">{data.url}</small>}
 
-                    <summary dangerouslySetInnerHTML={{ __html: data.summary }} />
-                    <p dangerouslySetInnerHTML={{ __html: data.text }} />
-
+                    <p
+                        className="prose prose-sm !max-w-none"
+                        dangerouslySetInnerHTML={{ __html: summaryHtml }}
+                    />
+                    <hr className="my-2" />
+                    <article
+                        className="prose prose-sm !max-w-none"
+                        dangerouslySetInnerHTML={{ __html: data.text }} />
                     <details>
                         <summary>Raw Data</summary>
                         <pre
                             className="m-0 whitespace-pre-wrap break-words text-xs leading-normal font-mono"
                         >
+                            <code>
                             {JSON.stringify(data, null, 2)}
+                            </code>
                         </pre>
                     </details>
                 </div>
