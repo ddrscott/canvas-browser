@@ -188,19 +188,6 @@ export class BrowserShapeUtil extends BaseBoxShapeUtil<BrowserShape> {
         webview.addEventListener('did-navigate', (event: any) => {
           if (event.url) {
             setUrl(event.url);
-            
-            // Save the new URL to the shape when navigation occurs
-            // Preserve the current width and height to prevent resizing
-            this.editor.updateShape({
-              id: shape.id,
-              type: 'browser',
-              props: {
-                ...shape.props,
-                url: event.url,
-                w: shape.props.w,
-                h: shape.props.h
-              }
-            });
           }
         });
         
@@ -208,19 +195,6 @@ export class BrowserShapeUtil extends BaseBoxShapeUtil<BrowserShape> {
         webview.addEventListener('did-navigate-in-page', (event: any) => {
           if (event.url) {
             setUrl(event.url);
-            
-            // Save the new URL to the shape
-            // Preserve the current width and height to prevent resizing
-            this.editor.updateShape({
-              id: shape.id,
-              type: 'browser',
-              props: {
-                ...shape.props,
-                url: event.url,
-                w: shape.props.w,
-                h: shape.props.h
-              }
-            });
           }
         });
         

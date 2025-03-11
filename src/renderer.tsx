@@ -7,14 +7,15 @@ import '@tldraw/tldraw/tldraw.css'
 import React from 'react'
 import ReactDOM from 'react-dom/client'
 import {
-  DefaultSizeStyle,
   Tldraw,
   createShapeId,
   Editor
 } from '@tldraw/tldraw'
 import { BrowserShapeUtil } from './shapes/BrowserShape'
 import { MarkdownShapeUtil } from './shapes/MarkdownShape'
+import { ExaSearchResultShapeUtil } from './shapes/ExaSearchResultShape'
 import { exportData, importData, selectFile } from './utils/exportImport'
+import { performExaSearch, showSearchDialog } from './utils/exaSearch'
 
 /**
  * Button configuration for shape creation
@@ -31,13 +32,6 @@ interface ShapeButtonConfig {
   startEditing?: boolean;
 }
 
-/**
- * Calculate the position to place a shape at viewport center
- * @param editor The TLDraw editor instance
- * @param width Width of the shape to be centered
- * @param height Height of the shape to be centered
- * @returns {x, y} coordinates to place the shape
- */
 function getPositionAtViewportCenter(editor: Editor, width: number, height: number) {
   let x = 0, y = 0;
 
@@ -94,7 +88,7 @@ function createShape(config: ShapeButtonConfig) {
   const id = createShapeId();
 
   // Prepare the props object with the extraProps
-  const props = {
+  const props:any = {
     w: config.width,
     h: config.height,
     ...config.extraProps
@@ -219,12 +213,24 @@ async function handleImport() {
 }
 
 /**
- * Show a notification message
+ * Show a notification message with customizable auto-hide behavior
+ * @param message The message to display
+ * @param type The notification type (success, error, info)
+ * @param duration Duration in ms before auto-hiding (0 for no auto-hide)
+ * @returns An ID that can be used to manually dismiss the notification
  */
-function showNotification(message: string, type: 'success' | 'error' | 'info' = 'info', duration = 3000) {
+function showNotification(
+  message: string,
+  type: 'success' | 'error' | 'info' = 'info',
+  duration = 3000
+): string {
+  // Generate a unique ID for this notification
+  const id = 'notification-' + Date.now();
+
   // Create notification element
   const notification = document.createElement('div');
   notification.className = `notification notification-${type}`;
+  notification.id = id;
   notification.textContent = message;
 
   // Style the notification
@@ -259,25 +265,122 @@ function showNotification(message: string, type: 'success' | 'error' | 'info' = 
     notification.style.opacity = '1';
   }, 10);
 
-  // Remove after duration
-  setTimeout(() => {
+  // Remove after duration if duration > 0
+  if (duration > 0) {
+    setTimeout(() => {
+      hideNotification(id);
+    }, duration);
+  }
+
+  return id;
+}
+
+/**
+ * Hide and remove a notification by its ID
+ * @param id The notification ID to hide
+ */
+function hideNotification(id: string): void {
+  const notification = document.getElementById(id);
+  if (notification) {
     notification.style.opacity = '0';
     setTimeout(() => {
       if (document.body.contains(notification)) {
         document.body.removeChild(notification);
       }
     }, 300);
-  }, duration);
+  }
 }
 
-DefaultSizeStyle.setDefaultValue('s')
+/**
+ * Handle the search action - create individual shapes for each result
+ */
+async function handleSearch() {
+  console.log('Exa Search button clicked');
+  const editor = (window as any).tldrawEditor;
+  if (!editor) {
+    console.error('TLDraw editor not found');
+    showNotification('Editor not found', 'error');
+    return;
+  }
+
+  try {
+    // Show search dialog with new parameters
+    const searchParams = await showSearchDialog();
+    if (!searchParams) {
+      console.log('Search dialog cancelled');
+      return;
+    }
+
+    console.log('Search parameters:', searchParams);
+
+    // Show loading notification that doesn't auto-hide (duration = 0)
+    const notificationId = showNotification('Searching...', 'info', 0);
+
+    const shapeWidth = 400;
+    const shapeHeight = 800;
+
+    // Use our extracted search function with the new parameters
+    const exaResponse = await performExaSearch(
+      searchParams.query,
+      searchParams.apiKey,
+      searchParams.numResults
+    );
+
+    hideNotification(notificationId);
+
+    console.log('Search results:', exaResponse);
+
+    const position = getPositionAtViewportCenter(editor, shapeWidth, shapeHeight);
+
+    if (!exaResponse.results || exaResponse.results.length === 0) {
+      showNotification('No search results found', 'info');
+      return;
+    }
+
+    const gapX = shapeWidth * 0.1; // 10% gap between columns
+
+    let startX = position.x;
+
+    // Create individual shapes for each result
+    exaResponse.results.forEach((result:any, index:number) => {
+      const id = createShapeId();
+      console.log(`Creating result shape ${index + 1}:`, { id, x: startX, y: position.y });
+
+      editor.createShape({
+        id,
+        type: 'exaSearchResult',
+        x: startX,
+        y: position.y,
+        props: {
+          w: shapeWidth,
+          h: shapeHeight,
+          resultData: result,
+          createdAt: Date.now()
+        }
+      });
+
+      // Move to next position horizontally
+      startX += shapeWidth + gapX;
+    });
+
+    showNotification(`Created ${exaResponse.results.length} search result cards`, 'success');
+  } catch (error: any) {
+    console.error('Search failed:', error);
+    showNotification(`Search failed: ${error.message || 'Unknown error'}`, 'error');
+  }
+}
+
 // The main TLDraw application component
 function TldrawBrowserApp() {
   return (
     <div className="tldraw__editor">
       <Tldraw
         persistenceKey="tldraw-browser-electron-v2"
-        shapeUtils={[BrowserShapeUtil, MarkdownShapeUtil]}
+        shapeUtils={[
+          BrowserShapeUtil,
+          MarkdownShapeUtil,
+          ExaSearchResultShapeUtil // Add the new shape util here
+        ]}
         onMount={(editor) => {
           // Store editor in a global so we can access it from the button
           if (typeof window !== 'undefined') {
@@ -372,8 +475,19 @@ document.addEventListener('DOMContentLoaded', () => {
       const importButton = createMenuButton('Import Data', handleImport);
       menuContainer.appendChild(importButton);
 
+      // Create and add search button with a more distinct style
+      const searchButton = createMenuButton('Exa Search', handleSearch, {
+        backgroundColor: '#4a86e8',
+        color: 'white',
+        fontWeight: 'bold',
+        border: 'none'
+      });
+      menuContainer.appendChild(searchButton);
+
       // Add menu container to document
       document.body.appendChild(menuContainer);
-    }, 100); // Delay for 100ms
+
+      console.log('UI buttons initialized');
+    }, 500); // Increase delay to ensure everything is loaded
   }
 });

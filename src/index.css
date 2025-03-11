@@ -1,3 +1,7 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
 html, body {
   margin: 0;
   padding: 0;
@@ -109,4 +113,26 @@ html, body {
 
 .notification-info {
   background-color: #2196F3;
+}
+
+/* Search modal styles */
+.search-modal {
+  z-index: 10000;
+}
+
+.search-modal-content {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+}
+
+.search-modal-content input:focus {
+  outline: 2px solid #4a86e8;
+  border-color: transparent;
+}
+
+.search-modal-content button:hover {
+  opacity: 0.9;
+}
+
+.search-modal-content button:active {
+  transform: translateY(1px);
 }

@@ -10,8 +10,10 @@ import {
 import CodeMirror from '@uiw/react-codemirror';
 import { markdown } from '@codemirror/lang-markdown';
 import { EditorView } from '@codemirror/view';
-import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter';
-import { tomorrow } from 'react-syntax-highlighter/dist/esm/styles/prism';
+import { Marked } from "marked";
+import { markedHighlight } from "marked-highlight";
+import hljs from 'highlight.js';
+
 
 // Utility function to extract code blocks from markdown
 const extractCodeBlocks = (text: string) => {
@@ -40,6 +42,17 @@ const formatDate = (timestamp: number): string => {
     minute: '2-digit'
   });
 };
+
+const marked = new Marked(
+  markedHighlight({
+	emptyLangClass: 'hljs',
+    langPrefix: 'hljs language-',
+    highlight(code, lang, info) {
+      const language = hljs.getLanguage(lang) ? lang : 'plaintext';
+      return hljs.highlight(code, { language }).value;
+    }
+  })
+);
 
 // Define the markdown shape type
 type MarkdownShape = TLBaseShape<
@@ -105,25 +118,6 @@ function hello() {
     };
   }
 
-  // Helper method for code block syntax highlighting
-  private getCodeBlockRenderer() {
-    return (code: string, language: string | undefined) => {
-      if (!language) language = 'text';
-      return (
-        <SyntaxHighlighter
-          language={language}
-          style={tomorrow}
-          customStyle={{
-            borderRadius: '4px',
-            margin: '1em 0',
-          }}
-        >
-          {code}
-        </SyntaxHighlighter>
-      );
-    };
-  }
-
   // Render the component
   override component(shape: MarkdownShape) {
     const [value, setValue] = useState(shape.props.text);
@@ -170,10 +164,9 @@ function hello() {
           overflow: 'hidden',
           boxShadow: '0 2px 10px rgba(0,0,0,0.1)',
           backgroundColor: 'white',
-          pointerEvents: 'all',
         }}
         onPointerDown={isEditing ? stopEventPropagation : undefined}
-        onWheel={stopEventPropagation}
+        onWheel={isEditing ? stopEventPropagation : undefined}
       >
         {/* Toolbar with creation date */}
         <div
@@ -245,78 +238,10 @@ function hello() {
                 this.editor.setEditingShape(shape.id);
               }}
             >
-              {(() => {
-                const text = shape.props.text;
-                const codeBlocks = extractCodeBlocks(text);
-
-                // Create a copy of the text to modify
-                let processedText = text;
-
-                // Replace each code block with a placeholder
-                codeBlocks.forEach((block, index) => {
-                  const codeBlockString = `\`\`\`${block.language}\n${block.code}\n\`\`\``;
-                  processedText = processedText.replace(
-                    codeBlockString,
-                    `__CODE_BLOCK_${index}__`
-                  );
-                });
-
-                // Split the text by our placeholders
-                const parts = processedText.split(/(__CODE_BLOCK_\d+__)/);
-
-                // Map the parts, replacing placeholders with rendered code blocks
-                return parts.map((part, index) => {
-                  const match = part.match(/__CODE_BLOCK_(\d+)__/);
-                  if (match) {
-                    const blockIndex = parseInt(match[1]);
-                    const block = codeBlocks[blockIndex];
-                    return (
-                      <SyntaxHighlighter
-                        key={index}
-                        language={block.language}
-                        style={tomorrow}
-                        customStyle={{
-                          borderRadius: '4px',
-                          margin: '1em 0',
-                        }}
-                      >
-                        {block.code}
-                      </SyntaxHighlighter>
-                    );
-                  } else {
-                    // For non-code parts, we render them as pre-formatted text with basic markdown styling
-                    return (
-                      <div key={index} style={{ whiteSpace: 'pre-wrap', marginBottom: '8px' }}>
-                        {part.split('\n').map((line, lineIndex) => {
-                          // Very basic markdown styling for headers
-                          if (line.startsWith('# ')) {
-                            return <h1 key={lineIndex} style={{ margin: '0.5em 0' }}>{line.substring(2)}</h1>;
-                          } else if (line.startsWith('## ')) {
-                            return <h2 key={lineIndex} style={{ margin: '0.5em 0' }}>{line.substring(3)}</h2>;
-                          } else if (line.startsWith('### ')) {
-                            return <h3 key={lineIndex} style={{ margin: '0.5em 0' }}>{line.substring(4)}</h3>;
-                          } else if (line.startsWith('- ')) {
-                            return <div key={lineIndex} style={{ marginLeft: '10px' }}>• {line.substring(2)}</div>;
-                          } else {
-                            // Basic styling for bold and italic (very simplified)
-                            let styledLine = line;
-                            styledLine = styledLine.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
-                            styledLine = styledLine.replace(/\*(.*?)\*/g, '<em>$1</em>');
-
-                            return (
-                              <div
-                                key={lineIndex}
-                                style={{ marginBottom: '3px' }}
-                                dangerouslySetInnerHTML={{ __html: styledLine }}
-                              />
-                            );
-                          }
-                        })}
-                      </div>
-                    );
-                  }
-                });
-              })()}
+                <div
+                    style={{ marginBottom: '3px' }}
+                    dangerouslySetInnerHTML={{ __html: marked.parse(shape.props.text) }}
+                />
             </div>
           )}
         </div>
