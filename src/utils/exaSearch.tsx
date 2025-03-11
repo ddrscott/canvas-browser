@@ -143,8 +143,8 @@ const SearchDialog: React.FC<SearchDialogProps> = ({ onSubmit, onCancel }) => {
           backgroundColor: 'white',
           borderRadius: '8px',
           boxShadow: '0 10px 25px rgba(0, 0, 0, 0.2)',
-          // width: '500px',
-          // maxWidth: '90%',
+          width: '500px',
+          maxWidth: '90%',
           padding: '20px'
         }}
         onClick={e => e.stopPropagation()}>
@@ -181,7 +181,7 @@ const SearchDialog: React.FC<SearchDialogProps> = ({ onSubmit, onCancel }) => {
             </label>
             <input
               id="apiKey"
-              type="text"
+              type="password"
               style={{ 
                 width: '100%', 
                 padding: '0.5rem 0.75rem', 

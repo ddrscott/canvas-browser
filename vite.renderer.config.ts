@@ -9,8 +9,8 @@ export default defineConfig({
   optimizeDeps: {
     include: ['@tldraw/tldraw', 'react', 'react-dom'],
   },
-  // Ensure proper handling of CSS files
+  // Configure CSS processing with PostCSS for Tailwind
   css: {
-    postcss: {},
+    postcss: './postcss.config.js',
   },
 });
