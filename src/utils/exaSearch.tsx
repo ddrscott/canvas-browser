@@ -1,43 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import ReactDOM from 'react-dom/client';
-// We'll handle the import more safely
-let Exa: any;
-try {
-  // Try dynamic import first for better compatibility
-  Exa = require('exa-js').default;
-} catch (e) {
-  console.error('Error importing Exa:', e);
-  // Fallback constructor for testing when package isn't available
-  Exa = class FallbackExa {
-    constructor(apiKey: string) {
-      this.apiKey = apiKey;
-      console.warn('Using fallback Exa implementation');
-    }
-
-    apiKey: string;
-
-    async searchAndContents(query: string, options: any = {}) {
-      console.log('Fallback search called with:', { query, options });
-      // Return mock data for testing
-      return {
-        requestId: 'mock-id',
-        autopromptString: query,
-        resolvedSearchType: 'mock',
-        results: [
-          {
-            id: 'result1',
-            title: 'Example Result',
-            url: 'https://example.com',
-            text: '<p>This is a mock result because the Exa API could not be loaded.</p>',
-            summary: 'Mock search result for testing purposes'
-          }
-        ],
-        effectiveFilters: {},
-        costDollars: { total: 0 }
-      };
-    }
-  };
-}
+import Exa from "exa-js"
 
 // Constants for localStorage
 const EXA_API_KEY_STORAGE_KEY = 'exa-api-key';
@@ -159,12 +122,34 @@ const SearchDialog: React.FC<SearchDialogProps> = ({ onSubmit, onCancel }) => {
 
   return (
     <div
-      className="search-modal fixed inset-0 flex items-center justify-center bg-black bg-opacity-50 z-50"
+      className="search-modal fixed inset-0 flex items-center justify-center bg-black bg-opacity-50"
+      style={{
+        position: 'fixed',
+        top: 0,
+        left: 0,
+        right: 0,
+        bottom: 0,
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        backgroundColor: 'rgba(0, 0, 0, 0.5)',
+        zIndex: 999999
+      }}
       onClick={(e) => {
         if (e.target === e.currentTarget) onCancel();
       }}
     >
-      <div className="search-modal-content bg-white rounded-lg shadow-lg w-[500px] max-w-[90%] p-5" onClick={e => e.stopPropagation()}>
+      <div 
+        className="search-modal-content bg-white rounded-lg shadow-lg w-[500px] max-w-[90%] p-5" 
+        style={{
+          backgroundColor: 'white',
+          borderRadius: '0.5rem',
+          boxShadow: '0 10px 25px rgba(0, 0, 0, 0.2)',
+          width: '500px',
+          maxWidth: '90%',
+          padding: '1.25rem'
+        }}
+        onClick={e => e.stopPropagation()}>
         <h2 className="text-lg font-bold mb-3">Exa Search</h2>
         <p className="text-sm text-gray-600 mb-4">
           Search for information and create a result card with the findings.
