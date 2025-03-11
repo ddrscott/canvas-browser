@@ -146,7 +146,7 @@ export class BrowserShapeUtil extends BaseBoxShapeUtil<BrowserShape> {
       // Mark as initialized to prevent re-runs
       (webviewRef.current as any).__webviewInitialized = true;
       
-      const scrollHandler: NodeJS.Timeout | null = null;
+      let scrollHandler: NodeJS.Timeout | null = null;
       
       if (isReady) {
         // Create a webview element
@@ -188,6 +188,9 @@ export class BrowserShapeUtil extends BaseBoxShapeUtil<BrowserShape> {
         webview.addEventListener('did-navigate', (event: any) => {
           if (event.url) {
             setUrl(event.url);
+
+            // update shape's url
+            this.editor.updateShape({ id: shape.id, type: 'browser', props: { url: event.url } });
           }
         });
         
@@ -195,6 +198,8 @@ export class BrowserShapeUtil extends BaseBoxShapeUtil<BrowserShape> {
         webview.addEventListener('did-navigate-in-page', (event: any) => {
           if (event.url) {
             setUrl(event.url);
+            // update shape's url
+            this.editor.updateShape({ id: shape.id, type: 'browser', props: { url: event.url } });
           }
         });
         
@@ -226,24 +231,27 @@ export class BrowserShapeUtil extends BaseBoxShapeUtil<BrowserShape> {
         {/* Browser toolbar */}
         <div
           className="h-8 bg-gray-100 border-b border-gray-300 flex items-center px-2.5 w-full relative"
+          style={{ pointerEvents: isEditing ? 'auto' : 'none' }}
         >
           {isEditing ? (
             // Interactive controls when editing
             <>
               {/* Back button */}
-              <div
+              <button
+                type="button"
                 onClick={handleBackClick}
                 className="w-4 h-4 rounded-full bg-gray-300 mr-1.5 cursor-pointer flex items-center justify-center text-xs"
               >
                 ←
-              </div>
+              </button>
               {/* Forward button */}
-              <div
+              <button
+                type="button"
                 onClick={handleForwardClick}
                 className="w-4 h-4 rounded-full bg-gray-300 mr-2.5 cursor-pointer flex items-center justify-center text-xs"
               >
                 →
-              </div>
+              </button>
               
               {/* URL bar */}
               <form 
@@ -262,12 +270,13 @@ export class BrowserShapeUtil extends BaseBoxShapeUtil<BrowserShape> {
               </form>
               
               {/* Refresh button */}
-              <div
+              <button
+                type="button"
                 onClick={handleRefreshClick}
                 className="w-4 h-4 rounded-full bg-gray-300 ml-2.5 cursor-pointer flex items-center justify-center text-xs"
               >
                 ↻
-              </div>
+              </button>
             </>
           ) : (
             // URL display when not editing
