@@ -132,7 +132,6 @@ export class ExaSearchResultShapeUtil extends BaseBoxShapeUtil<ExaSearchResultSh
                         created: { formattedDate }
                     </div>
                 </div>
-
             </HTMLContainer>
         );
     }

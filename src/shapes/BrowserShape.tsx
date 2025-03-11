@@ -146,7 +146,7 @@ export class BrowserShapeUtil extends BaseBoxShapeUtil<BrowserShape> {
       // Mark as initialized to prevent re-runs
       (webviewRef.current as any).__webviewInitialized = true;
       
-      let scrollHandler: NodeJS.Timeout | null = null;
+      const scrollHandler: NodeJS.Timeout | null = null;
       
       if (isReady) {
         // Create a webview element
@@ -165,15 +165,15 @@ export class BrowserShapeUtil extends BaseBoxShapeUtil<BrowserShape> {
         
         // Add logging and event handlers
         webview.addEventListener('did-start-loading', () => {
-          console.log('Webview started loading:', shape.props.url);
+          // console.log('Webview started loading:', shape.props.url);
         });
         
         webview.addEventListener('console-message', (e) => {
-          console.log('Guest page logged a message:', e.message)
+          // console.log('Guest page logged a message:', e.message)
         })
 
         webview.addEventListener('did-finish-load', () => {
-          console.log('Webview finished loading:', shape.props.url);
+          // console.log('Webview finished loading:', shape.props.url);
           // Update URL in input
           const currentUrl = (webview as any).getURL();
           if (currentUrl) {
@@ -226,69 +226,56 @@ export class BrowserShapeUtil extends BaseBoxShapeUtil<BrowserShape> {
         id={shape.id}
         className={`w-full h-full flex flex-col rounded-lg overflow-hidden shadow-md bg-white pointer-events-auto ${isEditing ? 'tldraw-editing-container' : ''}`}
         onPointerDown={isEditing ? stopEventPropagation : undefined}
-        onWheel={stopEventPropagation}
+        onWheel={isEditing ? stopEventPropagation : undefined}
       >
         {/* Browser toolbar */}
         <div
           className="h-8 bg-gray-100 border-b border-gray-300 flex items-center px-2.5 w-full relative"
           style={{ pointerEvents: isEditing ? 'auto' : 'none' }}
         >
-          {isEditing ? (
-            // Interactive controls when editing
-            <>
-              {/* Back button */}
-              <button
-                type="button"
-                onClick={handleBackClick}
-                className="w-4 h-4 rounded-full bg-gray-300 mr-1.5 cursor-pointer flex items-center justify-center text-xs"
-              >
-                ←
-              </button>
-              {/* Forward button */}
-              <button
-                type="button"
-                onClick={handleForwardClick}
-                className="w-4 h-4 rounded-full bg-gray-300 mr-2.5 cursor-pointer flex items-center justify-center text-xs"
-              >
-                →
-              </button>
-              
-              {/* URL bar */}
-              <form 
-                className="flex-1"
-                onSubmit={handleUrlSubmit}
-                onClick={(e) => e.stopPropagation()}
-              >
-                <input
-                  type="text"
-                  value={url}
-                  onChange={handleUrlChange}
-                  onKeyDown={(e) => e.stopPropagation()}
-                  onClick={(e) => e.stopPropagation()}
-                  className="w-full h-[22px] bg-white rounded-[11px] px-2.5 text-xs border border-gray-300 outline-none text-gray-600 box-border"
-                />
-              </form>
-              
-              {/* Refresh button */}
-              <button
-                type="button"
-                onClick={handleRefreshClick}
-                className="w-4 h-4 rounded-full bg-gray-300 ml-2.5 cursor-pointer flex items-center justify-center text-xs"
-              >
-                ↻
-              </button>
-            </>
-          ) : (
-            // URL display when not editing
-            <div
-              className="flex-1 h-[22px] bg-white rounded-[11px] px-2.5 text-xs border border-gray-300 text-gray-600 flex items-center overflow-hidden truncate whitespace-nowrap mx-5"
-            >
-              {shape.props.url}
-            </div>
-          )}
+          {/* Back button */}
+          <button
+            type="button"
+            onClick={handleBackClick}
+            className="w-4 h-4 rounded-full bg-gray-300 mr-1.5 cursor-pointer flex items-center justify-center text-xs"
+          >
+            ←
+          </button>
+          {/* Forward button */}
+          <button
+            type="button"
+            onClick={handleForwardClick}
+            className="w-4 h-4 rounded-full bg-gray-300 mr-2.5 cursor-pointer flex items-center justify-center text-xs"
+          >
+            →
+          </button>
+          
+          {/* URL bar */}
+          <form 
+            className="flex-1"
+            onSubmit={handleUrlSubmit}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <input
+              type="text"
+              value={url}
+              onChange={handleUrlChange}
+              onKeyDown={(e) => e.stopPropagation()}
+              onClick={(e) => e.stopPropagation()}
+              className="w-full h-[22px] bg-white rounded-[11px] px-2.5 text-xs border border-gray-300 outline-none text-gray-600 box-border"
+            />
+          </form>
+          
+          {/* Refresh button */}
+          <button
+            type="button"
+            onClick={handleRefreshClick}
+            className="w-4 h-4 rounded-full bg-gray-300 ml-2.5 cursor-pointer flex items-center justify-center text-xs"
+          >
+            ↻
+          </button>
         </div>
         
-        {/* Webview and content area */}
         <div 
           className="flex-1 relative"
         >
@@ -299,22 +286,9 @@ export class BrowserShapeUtil extends BaseBoxShapeUtil<BrowserShape> {
             className="w-full h-full absolute inset-0 pointer-events-auto"
           />
           
-          {/* Interaction blocker when not in edit mode */}
-          {!isEditing && (
-            <div
-              className="absolute inset-0 z-10 cursor-pointer bg-transparent pointer-events-auto flex justify-center items-center"
-              onDoubleClick={(e) => {
-                e.stopPropagation();
-                this.editor.select(shape.id);
-                this.editor.setEditingShape(shape.id);
-              }}
-            >
-              {/* Help text */}
-              <div className="absolute bottom-2.5 left-1/2 -translate-x-1/2 text-xs text-gray-600 bg-white/80 px-2 py-0.5 rounded pointer-events-none">
-                Double-click to interact
-              </div>
-            </div>
-          )}
+          <div className="absolute bottom-2.5 left-1/2 -translate-x-1/2 text-xs text-gray-600 bg-white/80 px-2 py-0.5 rounded pointer-events-none">
+            Double-click to interact
+          </div>
         </div>
       </HTMLContainer>
     );
