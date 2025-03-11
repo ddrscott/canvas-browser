@@ -75,57 +75,31 @@ export class ExaSearchResultShapeUtil extends BaseBoxShapeUtil<ExaSearchResultSh
         return (
             <HTMLContainer
                 id={shape.id}
-                style={{
-                    width: '100%',
-                    height: '100%',
-                    fontSize: '14px',
-                    lineHeight: '1.5',
-                    display: 'flex',
-                    flexDirection: 'column',
-                    borderRadius: '8px',
-                    overflow: 'hidden',
-                    boxShadow: '0 2px 10px rgba(0,0,0,0.1)',
-                    backgroundColor: 'white',
-                    pointerEvents: isEditing ? 'all' : 'none',
-                }}
+                className={`w-full h-full text-sm leading-normal flex flex-col rounded-lg overflow-hidden shadow-md bg-white ${isEditing ? 'pointer-events-auto' : 'pointer-events-none'}`}
                 onPointerDown={isEditing ? stopEventPropagation : undefined}
                 onWheel={isEditing ? stopEventPropagation : undefined}
             >
                 {/* Toolbar with creation date */}
                 <div
-                    style={{
-                        padding: '8px',
-                        borderBottom: '1px solid #eee',
-                        display: 'flex',
-                        justifyContent: 'flex-end',
-                        alignItems: 'center',
-                        background: '#f8f8f8',
-                        height: '32px',
-                        boxSizing: 'border-box',
-                        flexShrink: 0,
-                    }}
+                    className="p-2 border-b border-gray-200 flex justify-end items-center bg-gray-50 h-8 box-border flex-shrink-0"
                     onClick={(e) => e.stopPropagation()}
                 >
-                    <div style={{ fontSize: '12px', color: '#666', marginRight: 'auto' }}>
+                    <div className="text-xs text-gray-500 mr-auto">
                         { data.title || 'Untitled' }
                     </div>
-                    { data.favicon && <img src={data.favicon} style={{ width: '16px', height: '16px', marginRight: '8px' }} /> }
+                    { data.favicon && <img src={data.favicon} className="w-4 h-4 mr-2" /> }
                 </div>
 
                 {/* Content Area */}
-                { data.image && <img src={data.image} style={{ width: '100%', height: 'auto', maxHeight: '15em', objectFit: 'cover', boxShadow: '0 2px 4px rgba(0,0,0,0.1)' }} /> }
+                { data.image && <img src={data.image} className="w-full h-auto max-h-[15em] object-cover shadow-sm" /> }
                 <div
-                    style={{
-                        flex: 1,
-                        overflow: 'auto',
-                        padding: '16px',
-                    }}
+                    className="flex-1 overflow-auto p-4"
                     onClick={(e) => e.stopPropagation()}
                     onPointerDown={stopEventPropagation}
                 >
-                    <h2 style={{ margin: 0 }}>{data.title || 'Untitled'}</h2>
-                    {data.author && <small style={{ color: '#666', fontSize: '12px' }}>by {data.author}</small>}
-                    {data.url && <small style={{ color: '#666', fontSize: '12px' }}>{data.url}</small>}
+                    <h2 className="m-0">{data.title || 'Untitled'}</h2>
+                    {data.author && <small className="text-gray-500 text-xs">by {data.author}</small>}
+                    {data.url && <small className="text-gray-500 text-xs">{data.url}</small>}
 
                     <summary dangerouslySetInnerHTML={{ __html: data.summary }} />
                     <p dangerouslySetInnerHTML={{ __html: data.text }} />
@@ -133,33 +107,17 @@ export class ExaSearchResultShapeUtil extends BaseBoxShapeUtil<ExaSearchResultSh
                     <details>
                         <summary>Raw Data</summary>
                         <pre
-                            style={{
-                                margin: 0,
-                                whiteSpace: 'pre-wrap',
-                                wordBreak: 'break-word',
-                                fontSize: '12px',
-                                lineHeight: '1.5',
-                                fontFamily: 'monospace',
-                            }}
+                            className="m-0 whitespace-pre-wrap break-words text-xs leading-normal font-mono"
                         >
                             {JSON.stringify(data, null, 2)}
                         </pre>
                     </details>
                 </div>
                 <div
-                    style={{
-                        padding: '8px',
-                        borderBottom: '1px solid #eee',
-                        display: 'flex',
-                        justifyContent: 'flex-end',
-                        alignItems: 'center',
-                        background: '#f8f8f8',
-                        boxSizing: 'border-box',
-                        flexShrink: 0,
-                    }}
+                    className="p-2 border-b border-gray-200 flex justify-end items-center bg-gray-50 box-border flex-shrink-0"
                     onClick={(e) => e.stopPropagation()}
                 >
-                    <div style={{ fontSize: '12px', color: '#666', marginRight: 'auto' }}>
+                    <div className="text-xs text-gray-500 mr-auto">
                         created: { formattedDate }
                     </div>
                 </div>

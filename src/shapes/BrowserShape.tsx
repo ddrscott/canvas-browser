@@ -146,7 +146,7 @@ export class BrowserShapeUtil extends BaseBoxShapeUtil<BrowserShape> {
       // Mark as initialized to prevent re-runs
       (webviewRef.current as any).__webviewInitialized = true;
       
-      let scrollHandler: NodeJS.Timeout | null = null;
+      const scrollHandler: NodeJS.Timeout | null = null;
       
       if (isReady) {
         // Create a webview element
@@ -219,33 +219,13 @@ export class BrowserShapeUtil extends BaseBoxShapeUtil<BrowserShape> {
     return (
       <HTMLContainer
         id={shape.id}
-        className={isEditing ? 'tldraw-editing-container' : undefined}
-        style={{
-          width: '100%',
-          height: '100%',
-          display: 'flex',
-          flexDirection: 'column',
-          borderRadius: '8px',
-          overflow: 'hidden',
-          boxShadow: '0 2px 10px rgba(0,0,0,0.1)',
-          background: 'white',
-          pointerEvents: 'all',
-        }}
+        className={`w-full h-full flex flex-col rounded-lg overflow-hidden shadow-md bg-white pointer-events-auto ${isEditing ? 'tldraw-editing-container' : ''}`}
         onPointerDown={isEditing ? stopEventPropagation : undefined}
         onWheel={stopEventPropagation}
       >
         {/* Browser toolbar */}
         <div
-          style={{
-            height: '32px',
-            background: '#f0f0f0',
-            borderBottom: '1px solid #ddd',
-            display: 'flex',
-            alignItems: 'center',
-            padding: '0 10px',
-            width: '100%',
-            position: 'relative',
-          }}
+          className="h-8 bg-gray-100 border-b border-gray-300 flex items-center px-2.5 w-full relative"
         >
           {isEditing ? (
             // Interactive controls when editing
@@ -253,43 +233,21 @@ export class BrowserShapeUtil extends BaseBoxShapeUtil<BrowserShape> {
               {/* Back button */}
               <div
                 onClick={handleBackClick}
-                style={{
-                  width: '16px',
-                  height: '16px',
-                  borderRadius: '50%',
-                  background: '#ccc',
-                  marginRight: '5px',
-                  cursor: 'pointer',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  fontSize: '12px',
-                }}
+                className="w-4 h-4 rounded-full bg-gray-300 mr-1.5 cursor-pointer flex items-center justify-center text-xs"
               >
                 ←
               </div>
               {/* Forward button */}
               <div
                 onClick={handleForwardClick}
-                style={{
-                  width: '16px',
-                  height: '16px',
-                  borderRadius: '50%',
-                  background: '#ccc',
-                  marginRight: '10px',
-                  cursor: 'pointer',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  fontSize: '12px',
-                }}
+                className="w-4 h-4 rounded-full bg-gray-300 mr-2.5 cursor-pointer flex items-center justify-center text-xs"
               >
                 →
               </div>
               
               {/* URL bar */}
               <form 
-                style={{ flex: 1 }}
+                className="flex-1"
                 onSubmit={handleUrlSubmit}
                 onClick={(e) => e.stopPropagation()}
               >
@@ -299,36 +257,14 @@ export class BrowserShapeUtil extends BaseBoxShapeUtil<BrowserShape> {
                   onChange={handleUrlChange}
                   onKeyDown={(e) => e.stopPropagation()}
                   onClick={(e) => e.stopPropagation()}
-                  style={{
-                    width: '100%',
-                    height: '22px',
-                    background: 'white',
-                    borderRadius: '11px',
-                    padding: '0 10px',
-                    fontSize: '12px',
-                    border: '1px solid #d0d0d0',
-                    outline: 'none',
-                    color: '#666',
-                    boxSizing: 'border-box',
-                  }}
+                  className="w-full h-[22px] bg-white rounded-[11px] px-2.5 text-xs border border-gray-300 outline-none text-gray-600 box-border"
                 />
               </form>
               
               {/* Refresh button */}
               <div
                 onClick={handleRefreshClick}
-                style={{
-                  width: '16px',
-                  height: '16px',
-                  borderRadius: '50%',
-                  background: '#ccc',
-                  marginLeft: '10px',
-                  cursor: 'pointer',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  fontSize: '12px',
-                }}
+                className="w-4 h-4 rounded-full bg-gray-300 ml-2.5 cursor-pointer flex items-center justify-center text-xs"
               >
                 ↻
               </div>
@@ -336,22 +272,7 @@ export class BrowserShapeUtil extends BaseBoxShapeUtil<BrowserShape> {
           ) : (
             // URL display when not editing
             <div
-              style={{
-                flex: 1,
-                height: '22px',
-                background: 'white',
-                borderRadius: '11px',
-                padding: '0 10px',
-                fontSize: '12px',
-                border: '1px solid #d0d0d0',
-                color: '#666',
-                display: 'flex',
-                alignItems: 'center',
-                overflow: 'hidden',
-                textOverflow: 'ellipsis',
-                whiteSpace: 'nowrap',
-                margin: '0 20px',
-              }}
+              className="flex-1 h-[22px] bg-white rounded-[11px] px-2.5 text-xs border border-gray-300 text-gray-600 flex items-center overflow-hidden truncate whitespace-nowrap mx-5"
             >
               {shape.props.url}
             </div>
@@ -360,44 +281,19 @@ export class BrowserShapeUtil extends BaseBoxShapeUtil<BrowserShape> {
         
         {/* Webview and content area */}
         <div 
-          style={{ 
-            flex: 1, 
-            position: 'relative',
-          }}
+          className="flex-1 relative"
         >
           {/* Webview container - always visible */}
           <div
             ref={webviewRef}
             data-shape-id={shape.id}
-            style={{
-              width: '100%',
-              height: '100%',
-              position: 'absolute',
-              top: 0,
-              left: 0,
-              right: 0,
-              bottom: 0,
-              pointerEvents: 'all', // Always allow pointer events to the webview
-            }}
+            className="w-full h-full absolute inset-0 pointer-events-auto"
           />
           
           {/* Interaction blocker when not in edit mode */}
           {!isEditing && (
             <div
-              style={{
-                position: 'absolute',
-                top: 0,
-                left: 0,
-                right: 0,
-                bottom: 0,
-                zIndex: 10,
-                cursor: 'pointer',
-                background: 'transparent', // Completely transparent
-                pointerEvents: 'all', // Block all events and handle the double-click
-                display: 'flex',
-                justifyContent: 'center',
-                alignItems: 'center',
-              }}
+              className="absolute inset-0 z-10 cursor-pointer bg-transparent pointer-events-auto flex justify-center items-center"
               onDoubleClick={(e) => {
                 e.stopPropagation();
                 this.editor.select(shape.id);
@@ -405,18 +301,7 @@ export class BrowserShapeUtil extends BaseBoxShapeUtil<BrowserShape> {
               }}
             >
               {/* Help text */}
-              <div style={{ 
-                position: 'absolute', 
-                bottom: '10px', 
-                left: '50%', 
-                transform: 'translateX(-50%)', 
-                fontSize: '12px',
-                color: '#666',
-                backgroundColor: 'rgba(255, 255, 255, 0.8)',
-                padding: '3px 8px',
-                borderRadius: '4px',
-                pointerEvents: 'none',
-              }}>
+              <div className="absolute bottom-2.5 left-1/2 -translate-x-1/2 text-xs text-gray-600 bg-white/80 px-2 py-0.5 rounded pointer-events-none">
                 Double-click to interact
               </div>
             </div>

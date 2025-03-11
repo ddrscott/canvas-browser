@@ -78,29 +78,18 @@ rhoncus metus id, gravida est. Cras auctor efficitur libero, eu bibendum eros fa
     return (
       <HTMLContainer
         id={shape.id}
-        className="scrollable-shape"
+        className="scrollable-shape overflow-hidden shadow-md bg-orange-400 pointer-events-auto relative rounded-lg"
         onWheel={(e) => e.stopPropagation()}
-        style={{
-          overflow: 'hidden',
-          boxShadow: '0 2px 10px rgba(0,0,0,0.1)',
-          background: 'orange',
-          // Main container must remain clickable for selection
-          pointerEvents: 'all', 
-          position: 'relative'
-        }}
       >
         {/* Header */}
-        <div className="scrollable-header">
+        <div className="p-2 bg-orange-500 text-white font-medium text-center border-b border-orange-600">
           Simple Scrollable Shape
         </div>
 
         {/* Content */}
         {isEditing ? (
           <textarea
-            className="scrollable-textarea"
-            style={{
-              pointerEvents: 'all', 
-            }}
+            className="w-full h-[calc(100%-64px)] p-4 resize-none outline-none pointer-events-auto bg-white"
             value={shape.props.text}
             onChange={(e) => updateText(e.target.value)}
             onPointerDown={(e) => e.stopPropagation()}
@@ -111,7 +100,7 @@ rhoncus metus id, gravida est. Cras auctor efficitur libero, eu bibendum eros fa
           />
         ) : (
           <div
-            className="scrollable-content"
+            className="w-full h-[calc(100%-64px)] p-4 overflow-auto bg-white"
             onDoubleClick={(e) => {
               e.stopPropagation();
               this.editor.select(shape.id);
@@ -126,7 +115,7 @@ rhoncus metus id, gravida est. Cras auctor efficitur libero, eu bibendum eros fa
 
         {/* Footer help text */}
         {!isEditing && (
-          <div className="scrollable-footer">
+          <div className="absolute bottom-0 w-full py-1 text-center text-xs text-white bg-orange-500 opacity-80">
             Double-click to edit
           </div>
         )}

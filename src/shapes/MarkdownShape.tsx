@@ -154,54 +154,27 @@ function hello() {
     return (
       <HTMLContainer
         id={shape.id}
-        className={isEditing ? 'tldraw-editing-container' : undefined}
-        style={{
-          width: '100%',
-          height: '100%',
-          display: 'flex',
-          flexDirection: 'column',
-          borderRadius: '8px',
-          overflow: 'hidden',
-          boxShadow: '0 2px 10px rgba(0,0,0,0.1)',
-          backgroundColor: 'white',
-        }}
+        className={`w-full h-full flex flex-col rounded-lg overflow-hidden shadow-md bg-white ${isEditing ? 'tldraw-editing-container' : ''}`}
         onPointerDown={isEditing ? stopEventPropagation : undefined}
         onWheel={isEditing ? stopEventPropagation : undefined}
       >
         {/* Toolbar with creation date */}
         <div
-          style={{
-            padding: '8px',
-            borderBottom: '1px solid #eee',
-            display: 'flex',
-            justifyContent: 'flex-end',
-            alignItems: 'center',
-            background: '#f8f8f8',
-            height: '32px',
-            boxSizing: 'border-box',
-            flexShrink: 0,
-          }}
+          className="p-2 border-b border-gray-200 flex justify-end items-center bg-gray-50 h-8 box-border flex-shrink-0"
           onClick={(e) => e.stopPropagation()}
         >
-          <div style={{ fontSize: '12px', color: '#666', marginRight: 'auto' }}>
+          <div className="text-xs text-gray-500 mr-auto">
             {isEditing ? 'Edit Mode' : `Created: ${formattedDate}`}
           </div>
         </div>
 
         {/* Content Area */}
         <div
-          style={{
-            flex: 1,
-            overflow: 'hidden',
-            position: 'relative',
-          }}
+          className="flex-1 overflow-hidden relative"
         >
           {isEditing ? (
             <div
-              style={{
-                height: '100%',
-                overflow: 'hidden',
-              }}
+              className="h-full overflow-hidden"
               onPointerDown={stopEventPropagation}
               onClick={(e) => e.stopPropagation()}
             >
@@ -210,10 +183,7 @@ function hello() {
                 height="100%"
                 extensions={extensions}
                 onChange={handleTextChange}
-                style={{
-                  height: '100%',
-                  fontSize: '14px',
-                }}
+                className="h-full text-sm"
                 onClick={(e) => e.stopPropagation()}
                 onPointerDown={(e) => e.stopPropagation()}
                 onKeyDown={(e) => e.stopPropagation()}
@@ -221,17 +191,7 @@ function hello() {
             </div>
           ) : (
             <div
-              className="markdown-code-view"
-              style={{
-                height: '100%',
-                width: '100%',
-                overflow: 'auto',
-                padding: '16px',
-                fontSize: '14px',
-                lineHeight: '1.5',
-                fontFamily: 'system-ui, -apple-system, BlinkMacSystemFont, sans-serif',
-                color: '#333',
-              }}
+              className="markdown-code-view h-full w-full overflow-auto p-4 text-sm leading-normal font-sans text-gray-800"
               onDoubleClick={(e) => {
                 e.stopPropagation();
                 this.editor.select(shape.id);
@@ -239,7 +199,7 @@ function hello() {
               }}
             >
                 <div
-                    style={{ marginBottom: '3px' }}
+                    className="mb-0.5"
                     dangerouslySetInnerHTML={{ __html: marked.parse(shape.props.text) }}
                 />
             </div>
@@ -248,15 +208,7 @@ function hello() {
 
         {/* Help text shown when not editing */}
         {!isEditing && (
-          <div style={{
-            position: 'absolute',
-            bottom: '5px',
-            left: '50%',
-            transform: 'translateX(-50%)',
-            fontSize: '12px',
-            opacity: 0.5,
-            pointerEvents: 'none'
-          }}>
+          <div className="absolute bottom-1.5 left-1/2 -translate-x-1/2 text-xs opacity-50 pointer-events-none">
             Double-click to edit
           </div>
         )}
