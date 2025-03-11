@@ -39,26 +39,6 @@ export class BrowserShapeUtil extends BaseBoxShapeUtil<BrowserShape> {
   override onEditEnd(shape: BrowserShape): void {
     const webview = document.querySelector(`[data-shape-id="${shape.id}"] webview`) as any;
     if (!webview) return;
-    webview.executeJavaScript(`
-      {
-        scrollX: window.scrollX,
-        scrollY: window.scrollY,
-        html: document.documentElement.outerHTML,
-        currentUrl: window.location.href
-      }
-    `).then((state: {scrollX: number, scrollY: number, html: string, currentUrl: string}) => {
-      this.editor.updateShape({
-        id: shape.id,
-        type: 'browser',
-        props: {
-          ...shape.props,
-          scrollX: state.scrollX,
-          scrollY: state.scrollY,
-          innerHTML: state.html,
-          url: state.currentUrl
-        }
-      });
-    }).catch(err => console.error('Error saving webview state on edit end:', err));
   }
 
   // Default props when created
@@ -172,9 +152,6 @@ export class BrowserShapeUtil extends BaseBoxShapeUtil<BrowserShape> {
         // Create a webview element
         const webview = document.createElement('webview');
         
-        // Store the innerHTML content first if it exists
-        const hasContent = shape.props.innerHTML && shape.props.innerHTML.length > 0;
-        
         // Configure webview like a regular browser tab
         webview.src = shape.props.url;
         webview.setAttribute('partition', 'persist:tldraw');
@@ -191,65 +168,16 @@ export class BrowserShapeUtil extends BaseBoxShapeUtil<BrowserShape> {
           console.log('Webview started loading:', shape.props.url);
         });
         
+        webview.addEventListener('console-message', (e) => {
+          console.log('Guest page logged a message:', e.message)
+        })
+
         webview.addEventListener('did-finish-load', () => {
           console.log('Webview finished loading:', shape.props.url);
           // Update URL in input
           const currentUrl = (webview as any).getURL();
           if (currentUrl) {
             setUrl(currentUrl);
-          }
-          
-          // Use innerHTML to restore state if available
-          if (hasContent) {
-            try {
-              // Try to restore from innerHTML for faster restoration
-              (webview as any).executeJavaScript(`
-                // Don't fully replace document as that can cause issues
-                // Just try to restore visible state
-                try {
-                  // Check if we're on same domain to avoid CORS issues
-                  const storedDoc = new DOMParser().parseFromString(${JSON.stringify(shape.props.innerHTML)}, 'text/html');
-                  
-                  // Add any missing scripts or styles
-                  const addMissingElements = (selector) => {
-                    const currentElements = document.querySelectorAll(selector);
-                    const storedElements = storedDoc.querySelectorAll(selector);
-                    
-                    storedElements.forEach(stored => {
-                      let exists = false;
-                      currentElements.forEach(current => {
-                        if (current.outerHTML === stored.outerHTML) {
-                          exists = true;
-                        }
-                      });
-                      
-                      if (!exists) {
-                        document.head.appendChild(document.importNode(stored, true));
-                      }
-                    });
-                  };
-                  
-                  // Add scripts and styles
-                  addMissingElements('script');
-                  addMissingElements('link');
-                  addMissingElements('style');
-                  
-                  // Restore scroll position
-                  window.scrollTo(${shape.props.scrollX || 0}, ${shape.props.scrollY || 0});
-                } catch (e) {
-                  console.error('Error restoring saved content:', e);
-                  // Fallback to just restoring scroll position
-                  window.scrollTo(${shape.props.scrollX || 0}, ${shape.props.scrollY || 0});
-                }
-              `);
-            } catch (err) {
-              console.error('Failed to restore innerHTML:', err);
-            }
-          } else if (shape.props.scrollX || shape.props.scrollY) {
-            // Just restore scroll position if that's all we have
-            (webview as any).executeJavaScript(`
-              window.scrollTo(${shape.props.scrollX}, ${shape.props.scrollY});
-            `);
           }
         });
         
@@ -295,60 +223,6 @@ export class BrowserShapeUtil extends BaseBoxShapeUtil<BrowserShape> {
             });
           }
         });
-        
-        // Save scroll position and content periodically
-        const saveWebviewState = () => {
-          // Capture scroll position and current URL
-          (webview as any).executeJavaScript(`
-            {
-              scrollX: window.scrollX,
-              scrollY: window.scrollY,
-              html: document.documentElement.outerHTML,
-              currentUrl: window.location.href
-            }
-          `).then((state: {scrollX: number, scrollY: number, html: string, currentUrl: string}) => {
-            const needsUpdate = 
-              state.scrollX !== shape.props.scrollX || 
-              state.scrollY !== shape.props.scrollY ||
-              state.currentUrl !== shape.props.url;
-            
-            // Only update if position or URL changed (to avoid unnecessary updates)
-            if (needsUpdate) {
-              // We store full HTML but only when scroll position changes
-              // to avoid too many updates that could impact performance
-              this.editor.updateShape({
-                id: shape.id,
-                type: 'browser',
-                props: {
-                  ...shape.props,
-                  scrollX: state.scrollX,
-                  scrollY: state.scrollY,
-                  innerHTML: state.html,
-                  url: state.currentUrl,
-                  w: shape.props.w,
-                  h: shape.props.h
-                }
-              });
-            }
-          }).catch(err => console.error('Error saving webview state:', err));
-        };
-        
-        // Save scroll position when user scrolls
-        webview.addEventListener('did-stop-loading', () => {
-          // Set up scroll event listener in the webview
-          (webview as any).executeJavaScript(`
-            document.addEventListener('scroll', () => {
-              // Use a custom event to notify the parent
-              const event = new CustomEvent('browser-scrolled', {
-                detail: { scrollX: window.scrollX, scrollY: window.scrollY }
-              });
-              window.dispatchEvent(event);
-            }, { passive: true });
-          `);
-        });
-        
-        // Capture webview state periodically (consistent timing regardless of edit mode)
-        scrollHandler = setInterval(saveWebviewState, 750);
         
         // Add to DOM
         webviewRef.current.appendChild(webview);

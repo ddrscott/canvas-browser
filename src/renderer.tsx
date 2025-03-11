@@ -14,6 +14,7 @@ import {
 } from '@tldraw/tldraw'
 import { BrowserShapeUtil } from './shapes/BrowserShape'
 import { MarkdownShapeUtil } from './shapes/MarkdownShape'
+import { exportData, importData, selectFile } from './utils/exportImport'
 
 /**
  * Button configuration for shape creation
@@ -125,6 +126,150 @@ function createShape(config: ShapeButtonConfig) {
   console.log(`${config.type} shape added to canvas`);
 }
 
+/**
+ * Create a menu button with the given configuration
+ */
+function createMenuButton(label: string, onClick: () => void, styles?: Record<string, string>): HTMLButtonElement {
+  const button = document.createElement('button');
+  button.className = 'menu-button';
+  button.textContent = label;
+
+  // Base styles for menu buttons
+  const baseStyles = {
+    padding: '6px 12px',
+    margin: '0 5px',
+    borderRadius: '4px',
+    border: '1px solid #ccc',
+    background: '#f8f8f8',
+    cursor: 'pointer',
+    fontSize: '12px',
+    color: '#333',
+  };
+
+  // Apply base styles
+  Object.entries(baseStyles).forEach(([property, value]) => {
+    button.style[property as any] = value;
+  });
+
+  // Apply additional styles if provided
+  if (styles) {
+    Object.entries(styles).forEach(([property, value]) => {
+      button.style[property as any] = value;
+    });
+  }
+
+  // Add click event listener
+  button.addEventListener('click', (e) => {
+    e.stopPropagation();
+    onClick();
+  });
+
+  return button;
+}
+
+/**
+ * Handle export action - export canvas data to a zip file
+ */
+async function handleExport() {
+  const editor = (window as any).tldrawEditor;
+  if (!editor) {
+    console.error('TLDraw editor not found');
+    return;
+  }
+
+  const success = await exportData(editor);
+
+  if (success) {
+    // Show success notification
+    showNotification('Export successful', 'success');
+  } else {
+    // Show error notification
+    showNotification('Export failed', 'error');
+  }
+}
+
+/**
+ * Handle import action - import canvas data from a zip file
+ */
+async function handleImport() {
+  const editor = (window as any).tldrawEditor;
+  if (!editor) {
+    console.error('TLDraw editor not found');
+    return;
+  }
+
+  // Show file selection dialog
+  const file = await selectFile();
+
+  if (!file) {
+    console.log('Import cancelled');
+    return;
+  }
+
+  // Import the data
+  const success = await importData(editor, file);
+
+  if (success) {
+    // Show success notification
+    showNotification('Import successful', 'success');
+  } else {
+    // Show error notification
+    showNotification('Import failed', 'error');
+  }
+}
+
+/**
+ * Show a notification message
+ */
+function showNotification(message: string, type: 'success' | 'error' | 'info' = 'info', duration = 3000) {
+  // Create notification element
+  const notification = document.createElement('div');
+  notification.className = `notification notification-${type}`;
+  notification.textContent = message;
+
+  // Style the notification
+  Object.assign(notification.style, {
+    position: 'fixed',
+    bottom: '20px',
+    left: '50%',
+    transform: 'translateX(-50%)',
+    padding: '10px 20px',
+    borderRadius: '4px',
+    color: 'white',
+    zIndex: '10000',
+    boxShadow: '0 2px 10px rgba(0,0,0,0.2)',
+    opacity: '0',
+    transition: 'opacity 0.3s ease',
+  });
+
+  // Set color based on type
+  if (type === 'success') {
+    notification.style.backgroundColor = '#4CAF50';
+  } else if (type === 'error') {
+    notification.style.backgroundColor = '#F44336';
+  } else {
+    notification.style.backgroundColor = '#2196F3';
+  }
+
+  // Add to DOM
+  document.body.appendChild(notification);
+
+  // Trigger animation
+  setTimeout(() => {
+    notification.style.opacity = '1';
+  }, 10);
+
+  // Remove after duration
+  setTimeout(() => {
+    notification.style.opacity = '0';
+    setTimeout(() => {
+      if (document.body.contains(notification)) {
+        document.body.removeChild(notification);
+      }
+    }, 300);
+  }, duration);
+}
+
 DefaultSizeStyle.setDefaultValue('s')
 // The main TLDraw application component
 function TldrawBrowserApp() {
@@ -157,9 +302,9 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // Create buttons and add them to the DOM after TLDraw is initialized
     setTimeout(() => {
-      // Create container
-      const container = document.createElement('div');
-      container.className = 'browser-button-container';
+      // Create shape buttons container
+      const shapeContainer = document.createElement('div');
+      shapeContainer.className = 'browser-button-container';
 
       // Define button configurations
       const buttonConfigs: ShapeButtonConfig[] = [
@@ -196,11 +341,39 @@ document.addEventListener('DOMContentLoaded', () => {
       // Create and add buttons to container
       buttonConfigs.forEach(config => {
         const button = createShapeButton(config);
-        container.appendChild(button);
+        shapeContainer.appendChild(button);
       });
 
-      // Add container to document
-      document.body.appendChild(container);
-    }, 100); // Delay for 1 second
+      // Add shape container to document
+      document.body.appendChild(shapeContainer);
+
+      // Create menu container for export/import
+      const menuContainer = document.createElement('div');
+      menuContainer.className = 'menu-container';
+
+      // Style the menu container
+      Object.assign(menuContainer.style, {
+        position: 'fixed',
+        top: '10px',
+        right: '10px',
+        zIndex: '9999',
+        display: 'flex',
+        background: 'white',
+        padding: '5px',
+        borderRadius: '4px',
+        boxShadow: '0 2px 8px rgba(0,0,0,0.1)',
+      });
+
+      // Create and add export button
+      const exportButton = createMenuButton('Export Data', handleExport);
+      menuContainer.appendChild(exportButton);
+
+      // Create and add import button
+      const importButton = createMenuButton('Import Data', handleImport);
+      menuContainer.appendChild(importButton);
+
+      // Add menu container to document
+      document.body.appendChild(menuContainer);
+    }, 100); // Delay for 100ms
   }
 });
