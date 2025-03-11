@@ -122,7 +122,6 @@ const SearchDialog: React.FC<SearchDialogProps> = ({ onSubmit, onCancel }) => {
 
   return (
     <div
-      className="search-modal fixed inset-0 flex items-center justify-center bg-black bg-opacity-50"
       style={{
         position: 'fixed',
         top: 0,
@@ -140,30 +139,35 @@ const SearchDialog: React.FC<SearchDialogProps> = ({ onSubmit, onCancel }) => {
       }}
     >
       <div 
-        className="search-modal-content bg-white rounded-lg shadow-lg w-[500px] max-w-[90%] p-5" 
         style={{
           backgroundColor: 'white',
-          borderRadius: '0.5rem',
+          borderRadius: '8px',
           boxShadow: '0 10px 25px rgba(0, 0, 0, 0.2)',
-          width: '500px',
-          maxWidth: '90%',
-          padding: '1.25rem'
+          // width: '500px',
+          // maxWidth: '90%',
+          padding: '20px'
         }}
         onClick={e => e.stopPropagation()}>
-        <h2 className="text-lg font-bold mb-3">Exa Search</h2>
-        <p className="text-sm text-gray-600 mb-4">
+        <h2 style={{ fontSize: '1.125rem', fontWeight: 'bold', marginBottom: '0.75rem' }}>Exa Search</h2>
+        <p style={{ fontSize: '0.875rem', color: '#666', marginBottom: '1rem' }}>
           Search for information and create a result card with the findings.
         </p>
 
         <form onSubmit={handleSubmit}>
-          <div className="mb-4">
-            <label className="block text-sm font-medium mb-1" htmlFor="query">
+          <div style={{ marginBottom: '1rem' }}>
+            <label style={{ display: 'block', fontSize: '0.875rem', fontWeight: '500', marginBottom: '0.25rem' }} htmlFor="query">
               Search Query:
             </label>
             <input
               id="query"
               type="text"
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+              style={{ 
+                width: '100%', 
+                padding: '0.5rem 0.75rem', 
+                border: '1px solid #d1d5db', 
+                borderRadius: '0.375rem',
+                outline: 'none'
+              }}
               placeholder="Enter your search query..."
               value={query}
               onChange={(e) => setQuery(e.target.value)}
@@ -171,25 +175,31 @@ const SearchDialog: React.FC<SearchDialogProps> = ({ onSubmit, onCancel }) => {
             />
           </div>
 
-          <div className="mb-4">
-            <label className="block text-sm font-medium mb-1" htmlFor="apiKey">
+          <div style={{ marginBottom: '1rem' }}>
+            <label style={{ display: 'block', fontSize: '0.875rem', fontWeight: '500', marginBottom: '0.25rem' }} htmlFor="apiKey">
               Exa API Key:
             </label>
             <input
               id="apiKey"
               type="text"
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+              style={{ 
+                width: '100%', 
+                padding: '0.5rem 0.75rem', 
+                border: '1px solid #d1d5db', 
+                borderRadius: '0.375rem',
+                outline: 'none'
+              }}
               placeholder="Enter your Exa API key..."
               value={apiKey}
               onChange={(e) => setApiKey(e.target.value)}
             />
-            <div className="text-xs text-gray-500 mt-1">
-              Get your API key at <a href="#" className="text-blue-500">https://exa.ai</a>
+            <div style={{ fontSize: '0.75rem', color: '#6b7280', marginTop: '0.25rem' }}>
+              Get your API key at <a href="#" style={{ color: '#3b82f6' }}>https://exa.ai</a>
             </div>
           </div>
 
-          <div className="mb-4">
-            <label className="block text-sm font-medium mb-1" htmlFor="numResults">
+          <div style={{ marginBottom: '1rem' }}>
+            <label style={{ display: 'block', fontSize: '0.875rem', fontWeight: '500', marginBottom: '0.25rem' }} htmlFor="numResults">
               Number of Results:
             </label>
             <input
@@ -197,17 +207,30 @@ const SearchDialog: React.FC<SearchDialogProps> = ({ onSubmit, onCancel }) => {
               type="number"
               min="1"
               max="25"
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+              style={{ 
+                width: '100%', 
+                padding: '0.5rem 0.75rem', 
+                border: '1px solid #d1d5db', 
+                borderRadius: '0.375rem',
+                outline: 'none'
+              }}
               placeholder="Number of results"
               value={numResults}
               onChange={(e) => setNumResults(parseInt(e.target.value) || 5)}
             />
           </div>
 
-          <div className="flex justify-end gap-3 mt-5">
+          <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.75rem', marginTop: '1.25rem' }}>
             <button
               type="button"
-              className="px-4 py-2 bg-gray-200 text-gray-800 rounded-md hover:bg-gray-300 transition-colors"
+              style={{ 
+                padding: '0.5rem 1rem', 
+                backgroundColor: '#e5e7eb', 
+                color: '#1f2937', 
+                borderRadius: '0.375rem',
+                border: 'none',
+                cursor: loading ? 'not-allowed' : 'pointer'
+              }}
               onClick={onCancel}
               disabled={loading}
             >
@@ -215,9 +238,15 @@ const SearchDialog: React.FC<SearchDialogProps> = ({ onSubmit, onCancel }) => {
             </button>
             <button
               type="submit"
-              className={`px-4 py-2 bg-blue-500 text-white rounded-md transition-colors ${
-                !apiKey.trim() || loading ? 'opacity-50 cursor-not-allowed' : 'hover:bg-blue-600'
-              }`}
+              style={{ 
+                padding: '0.5rem 1rem', 
+                backgroundColor: '#3b82f6', 
+                color: 'white', 
+                borderRadius: '0.375rem',
+                border: 'none',
+                opacity: !apiKey.trim() || loading ? 0.5 : 1,
+                cursor: !apiKey.trim() || loading ? 'not-allowed' : 'pointer'
+              }}
               disabled={!apiKey.trim() || loading}
             >
               {loading ? 'Searching...' : 'Search'}
