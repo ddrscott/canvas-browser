@@ -85,10 +85,10 @@ export class ExaSearchResultShapeUtil extends BaseBoxShapeUtil<ExaSearchResultSh
             >
                 {/* Toolbar with creation date */}
                 <div
-                    className="p-2 border-b border-gray-200 flex justify-end items-center bg-gray-50 h-8 box-border flex-shrink-0"
+                    className="p-2 border-b border-gray-200 flex justify-end items-center bg-gray-50 box-border flex-shrink-0"
                     onClick={(e) => e.stopPropagation()}
                 >
-                    <div className="text-xs text-gray-500 mr-auto">
+                    <div className="text-xs text-gray-500 font-bold mr-auto">
                         { data.title || 'Untitled' }
                     </div>
                     { data.favicon && <img src={data.favicon} className="w-4 h-4 mr-2" /> }
@@ -128,8 +128,8 @@ export class ExaSearchResultShapeUtil extends BaseBoxShapeUtil<ExaSearchResultSh
                     className="p-2 border-b border-gray-200 flex justify-end items-center bg-gray-50 box-border flex-shrink-0"
                     onClick={(e) => e.stopPropagation()}
                 >
-                    <div className="text-xs text-gray-500 mr-auto">
-                        created: { formattedDate }
+                    <div className="text-xs text-gray-500 ml-auto">
+                        Created: { formattedDate }
                     </div>
                 </div>
             </HTMLContainer>

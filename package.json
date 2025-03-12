@@ -1,7 +1,7 @@
 {
   "name": "canvas-browser",
   "productName": "Canvas Browser",
-  "version": "1.0.0",
+  "version": "0.1.1",
   "description": "A canvas with embedded browsers and markdown notes",
   "main": ".vite/build/main.js",
   "scripts": {
@@ -58,8 +58,5 @@
     "ts-node": "^10.9.2",
     "typescript": "~4.5.4",
     "vite": "^5.4.14"
-  },
-  "dependencies": {
-    "exa-js": "^1.0.0"
   }
 }
