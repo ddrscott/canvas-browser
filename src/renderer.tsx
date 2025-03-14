@@ -48,24 +48,24 @@ function getPositionAtViewportCenter(editor: Editor, width: number, height: numb
 }
 
 /**
- * Create a button element for adding a specific shape type
+ * Create a circular button for the floating menu
  */
-function createShapeButton(config: ShapeButtonConfig): HTMLButtonElement {
+function createCircularButton(
+  emoji: string,
+  tooltip: string,
+  onClick: () => void,
+  bgColor: string = '#ffffff'
+): HTMLButtonElement {
   const button = document.createElement('button');
-  button.className = `${config.type}-button`;
-  button.innerHTML = `${config.emoji} ${config.label}`;
-  button.title = config.tooltip;
-
-  // Apply any additional styles
-  if (config.styles) {
-    Object.entries(config.styles).forEach(([property, value]) => {
-      button.style[property as any] = value;
-    });
-  }
+  button.className = 'circular-button';
+  button.innerHTML = emoji;
+  button.title = tooltip;
+  button.style.backgroundColor = bgColor;
 
   // Add click event listener
-  button.addEventListener('click', () => {
-    createShape(config);
+  button.addEventListener('click', (e) => {
+    e.stopPropagation();
+    onClick();
   });
 
   return button;
@@ -118,47 +118,6 @@ function createShape(config: ShapeButtonConfig) {
   }
 
   console.log(`${config.type} shape added to canvas`);
-}
-
-/**
- * Create a menu button with the given configuration
- */
-function createMenuButton(label: string, onClick: () => void, styles?: Record<string, string>): HTMLButtonElement {
-  const button = document.createElement('button');
-  button.className = 'menu-button';
-  button.textContent = label;
-
-  // Base styles for menu buttons
-  const baseStyles = {
-    padding: '6px 12px',
-    margin: '0 5px',
-    borderRadius: '4px',
-    border: '1px solid #ccc',
-    background: '#f8f8f8',
-    cursor: 'pointer',
-    fontSize: '12px',
-    color: '#333',
-  };
-
-  // Apply base styles
-  Object.entries(baseStyles).forEach(([property, value]) => {
-    button.style[property as any] = value;
-  });
-
-  // Apply additional styles if provided
-  if (styles) {
-    Object.entries(styles).forEach(([property, value]) => {
-      button.style[property as any] = value;
-    });
-  }
-
-  // Add click event listener
-  button.addEventListener('click', (e) => {
-    e.stopPropagation();
-    onClick();
-  });
-
-  return button;
 }
 
 /**
@@ -405,17 +364,18 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // Create buttons and add them to the DOM after TLDraw is initialized
     setTimeout(() => {
-      // Create shape buttons container
-      const shapeContainer = document.createElement('div');
-      shapeContainer.className = 'browser-button-container';
+      // Create consolidated floating menu container
+      const floatingMenu = document.createElement('div');
+      floatingMenu.className = 'floating-menu';
+      document.body.appendChild(floatingMenu);
 
-      // Define button configurations
-      const buttonConfigs: ShapeButtonConfig[] = [
+      // Define button configurations for shape creation
+      const shapeConfigs: ShapeButtonConfig[] = [
         {
           type: 'browser',
           emoji: '🌐',
           label: 'Web',
-          tooltip: 'Insert Browser with Webview',
+          tooltip: 'Add Browser',
           width: 480,
           height: 800,
           extraProps: {
@@ -428,64 +388,62 @@ document.addEventListener('DOMContentLoaded', () => {
           type: 'markdown',
           emoji: '📝',
           label: 'MD',
-          tooltip: 'Insert Markdown Note',
+          tooltip: 'Add Markdown Note',
           width: 400,
           height: 600,
           extraProps: {
-            createdAt: Date.now() // Ensure createdAt is passed when creating a markdown shape
+            createdAt: Date.now()
           },
-          startEditing: true,
-          styles: {
-            marginLeft: '1em'
-          }
+          startEditing: true
         }
       ];
 
-      // Create and add buttons to container
-      buttonConfigs.forEach(config => {
-        const button = createShapeButton(config);
-        shapeContainer.appendChild(button);
-      });
+      // Add browser button
+      const browserButton = createCircularButton(
+        '🌐',
+        'Add Browser',
+        () => createShape(shapeConfigs[0]),
+        '#2f80ed'
+      );
+      floatingMenu.appendChild(browserButton);
 
-      // Add shape container to document
-      document.body.appendChild(shapeContainer);
+      // Add markdown button
+      const markdownButton = createCircularButton(
+        '📝',
+        'Add Markdown Note',
+        () => createShape(shapeConfigs[1]),
+        '#34a853'
+      );
+      floatingMenu.appendChild(markdownButton);
 
-      // Create menu container for export/import
-      const menuContainer = document.createElement('div');
-      menuContainer.className = 'menu-container';
+      // Add search button
+      const searchButton = createCircularButton(
+        '🔍',
+        'Exa Search',
+        handleSearch,
+        '#4a86e8'
+      );
+      floatingMenu.appendChild(searchButton);
 
-      // Style the menu container
-      Object.assign(menuContainer.style, {
-        position: 'fixed',
-        top: '10px',
-        right: '10px',
-        zIndex: '9999',
-        display: 'flex',
-        background: 'white',
-        padding: '5px',
-        borderRadius: '4px',
-        boxShadow: '0 2px 8px rgba(0,0,0,0.1)',
-      });
+      // Add export button
+      const exportButton = createCircularButton(
+        'Export',
+        'Export Data',
+        handleExport,
+        '#f8f8f8'
+      );
+      exportButton.style.fontSize = '.75em';
+      floatingMenu.appendChild(exportButton);
 
-      // Create and add export button
-      const exportButton = createMenuButton('Export Data', handleExport);
-      menuContainer.appendChild(exportButton);
-
-      // Create and add import button
-      const importButton = createMenuButton('Import Data', handleImport);
-      menuContainer.appendChild(importButton);
-
-      // Create and add search button with a more distinct style
-      const searchButton = createMenuButton('Exa Search', handleSearch, {
-        backgroundColor: '#4a86e8',
-        color: 'white',
-        fontWeight: 'bold',
-        border: 'none'
-      });
-      menuContainer.appendChild(searchButton);
-
-      // Add menu container to document
-      document.body.appendChild(menuContainer);
+      // Add import button
+      const importButton = createCircularButton(
+        'Import',
+        'Import Data',
+        handleImport,
+        '#f8f8f8'
+      );
+      importButton.style.fontSize = '.75em';
+      floatingMenu.appendChild(importButton);
 
       console.log('UI buttons initialized');
     }, 500); // Increase delay to ensure everything is loaded
