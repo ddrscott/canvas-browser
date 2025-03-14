@@ -9,12 +9,17 @@
     "package": "electron-forge package",
     "make": "electron-forge make",
     "publish": "electron-forge publish",
-    "lint": "eslint --ext .ts,.tsx ."
+    "lint": "eslint --ext .ts,.tsx .",
+    "app:dir": "electron-builder --dir",
+    "app:dist": "electron-builder"
   },
   "keywords": [],
   "author": {
     "name": "Scott Pierce",
     "email": "ddrscott@gmail.com"
+  },
+  "build": {
+    "appId": "canvas-browser.ljs.app"
   },
   "license": "MIT",
   "devDependencies": {
@@ -38,7 +43,9 @@
     "@uiw/react-codemirror": "^4.23.10",
     "@vitejs/plugin-react": "^4.2.1",
     "autoprefixer": "^10.4.21",
+    "daisyui": "^5.0.3",
     "electron": "35.0.0",
+    "electron-builder": "^25.1.8",
     "electron-squirrel-startup": "^1.0.1",
     "eslint": "^8.57.1",
     "eslint-plugin-import": "^2.31.0",

@@ -177,7 +177,7 @@ function hello() {
           onPointerDown={captureAllEvents}
         >
           <div className="text-xs text-gray-500 mr-auto">
-            {isEditing ? 'Edit Mode' : `Created: ${formattedDate}`}
+            {isEditing ? 'Edit Mode' : `📝 Created: ${formattedDate}`}
           </div>
         </div>
 
@@ -231,13 +231,6 @@ function hello() {
             </div>
           )}
         </div>
-
-        {/* Help text shown when not editing */}
-        {!isEditing && (
-          <div className="absolute bottom-1.5 left-1/2 -translate-x-1/2 text-xs opacity-50 pointer-events-none">
-            Double-click to edit
-          </div>
-        )}
       </HTMLContainer>
     );
   }
