@@ -16,15 +16,14 @@ $(DMG_FILE):
 
 tag:
 	# Create a new tag
-	git tag -a "v$(VERSION)" -m "version++ (v$(VERSION))" &&
+	git tag -a "v$(VERSION)" -m "version++ (v$(VERSION))" && \
 	git push origin "v$(VERSION)"
 
-release:
+release: tag dist
 	# Create a new GitHub release
 	gh release create "v$(VERSION)" \
 		--title "$(PRODUCT_NAME) v$(VERSION)" \
 		--generate-notes \
-		--draft \
 		$(DMG_FILE)
 
 clean:
