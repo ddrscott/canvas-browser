@@ -1,7 +1,7 @@
 {
   "name": "canvas-browser",
   "productName": "Canvas Browser",
-  "version": "0.1.4",
+  "version": "0.2.0",
   "description": "A canvas with embedded browsers and markdown notes",
   "main": ".vite/build/main.js",
   "scripts": {

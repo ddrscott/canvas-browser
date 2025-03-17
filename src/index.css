@@ -108,3 +108,16 @@ html, body {
 .search-modal-content button:active {
   transform: translateY(1px);
 }
+
+/* Add custom Tool Icons in TLDraw toolbar */
+.tlui-toolbar__group:has([aria-label="Browser"]) button {
+  font-size: 1.2em;
+}
+
+.tlui-toolbar__group:has([aria-label="Markdown"]) button {
+  font-size: 1.2em;
+}
+
+.tlui-toolbar__group:has([aria-label="Search"]) button {
+  font-size: 1.2em;
+}
