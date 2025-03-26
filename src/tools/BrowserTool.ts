@@ -14,8 +14,8 @@ export class BrowserTool extends StateNode {
     this.editor.createShape({
       id,
       type: 'browser',
-      x: currentPagePoint.x - 240, // Half of width
-      y: currentPagePoint.y - 400, // Half of height
+      x: currentPagePoint.x,
+      y: currentPagePoint.y,
       props: {
         w: 480,
         h: 800,
@@ -27,7 +27,7 @@ export class BrowserTool extends StateNode {
 
     // Select the newly created shape and start editing
     setTimeout(() => {
-        this.editor.setEditingShape(id)
-    }, 100)
+      this.editor.setCurrentTool('select')
+    }, 10)
   }
 }

@@ -9,7 +9,22 @@ import { FuseV1Options, FuseVersion } from '@electron/fuses';
 
 const config: ForgeConfig = {
   packagerConfig: {
+    name: 'Canvas Browser',
     asar: true,
+    osxSign: {
+      optionsForFile: (_) => {
+        return {
+          entitlements: 'build/entitlements.mac.plist'
+        };
+      }
+    },
+    osxNotarize: {
+      appleId: process.env.APPLE_ID || 'MUST BE SET!!!',
+      appleIdPassword: process.env.APPLE_APP_SPECIFIC_PASSWORD || 'MUST BE SET!!!',
+      teamId: process.env.APPLE_TEAM_ID || 'MUST BE SET!!!',
+    },
+    // Ensure all assets are included in the final package
+    extraResource: ['./public']
   },
   rebuildConfig: {},
   makers: [new MakerSquirrel({}), new MakerZIP({}, ['darwin']), new MakerRpm({}), new MakerDeb({})],

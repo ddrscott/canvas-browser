@@ -12,7 +12,7 @@ const createWindow = () => {
   const mainWindow = new BrowserWindow({
     width: 1200,
     height: 800,
-    title: 'TLDraw App',
+    title: 'Canvas Browser',
     webPreferences: {
       preload: path.join(__dirname, 'preload.js'),
       contextIsolation: true,
@@ -69,16 +69,17 @@ const createWindow = () => {
   });
   
   // Log webviews being created
-  app.on('web-contents-created', (_, contents) => {
+  app.on('web-contents-created', (event, contents) => {
     if (contents.getType() === 'webview') {
-      console.log('Webview created with URL:', contents.getURL());
       
       // For webviews, we don't enforce any CSP - let the site set its own
       // This mimics normal browser behavior where each site has its own security context
       
       // Configure each webview
-      contents.setWindowOpenHandler(() => {
-        return { action: 'allow' };
+      contents.setWindowOpenHandler((e) => {
+          console.log('!!!!!!!!! preventing window open', e);
+          mainWindow.webContents.send('cb-on-new-window', e)
+          return { action: 'deny' };
       });
       
       // Handle navigation events

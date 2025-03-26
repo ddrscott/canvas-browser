@@ -146,8 +146,6 @@ export class BrowserShapeUtil extends BaseBoxShapeUtil<BrowserShape> {
       // Mark as initialized to prevent re-runs
       (webviewRef.current as any).__webviewInitialized = true;
       
-      const scrollHandler: NodeJS.Timeout | null = null;
-      
       if (isReady) {
         // Create a webview element
         const webview = document.createElement('webview');
@@ -163,14 +161,9 @@ export class BrowserShapeUtil extends BaseBoxShapeUtil<BrowserShape> {
         webview.style.height = '100%';
         webview.style.border = 'none';
         
-        // Add logging and event handlers
-        webview.addEventListener('did-start-loading', () => {
-          // console.log('Webview started loading:', shape.props.url);
-        });
-        
-        webview.addEventListener('console-message', (e) => {
-          // console.log('Guest page logged a message:', e.message)
-        })
+        // webview.addEventListener('console-message', (e) => {
+        //   console.log(e)
+        // })
 
         webview.addEventListener('did-finish-load', () => {
           // console.log('Webview finished loading:', shape.props.url);
@@ -209,9 +202,7 @@ export class BrowserShapeUtil extends BaseBoxShapeUtil<BrowserShape> {
       
       // Clean up interval on unmount
       return () => {
-        if (scrollHandler) {
-          clearInterval(scrollHandler);
-        }
+          console.log("unmounted")
       };
     // Only depend on isReady and shape.id, but NOT on isEditing
     }, [isReady, shape.id]);

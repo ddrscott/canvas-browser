@@ -4,19 +4,14 @@
 
 import './index.css';
 import '@tldraw/tldraw/tldraw.css'
+// Fix the icon imports to use consistent approach and correct paths
 import React from 'react'
 import ReactDOM from 'react-dom/client'
 import {
   Tldraw,
-  createShapeId,
-  Editor,
-  useTools,
-  useIsToolSelected,
   DefaultToolbar,
   DefaultToolbarContent,
-  TldrawUiMenuItem,
-  TLUiOverrides,
-  TLUiAssetUrlOverrides
+  createShapeId
 } from '@tldraw/tldraw'
 import { BrowserShapeUtil } from './shapes/BrowserShape'
 import { MarkdownShapeUtil } from './shapes/MarkdownShape'
@@ -25,6 +20,10 @@ import { exportData, importData, selectFile } from './utils/exportImport'
 import { BrowserTool } from './tools/BrowserTool'
 import { MarkdownTool } from './tools/MarkdownTool'
 import { SearchTool } from './tools/SearchTool'
+
+import IconBrowser from '@public/icon-browser.svg'
+import IconMarkdown from '@public/icon-markdown.svg'
+import IconSearch from '@public/icon-search.svg'
 
 /**
  * Show a notification message with customizable auto-hide behavior
@@ -183,63 +182,13 @@ function createCircularButton(
 // Define custom tools to use in TLDraw
 const customTools = [BrowserTool, MarkdownTool, SearchTool];
 
-// Define asset URLs for custom icons
-const customAssetUrls: TLUiAssetUrlOverrides = {
-  icons: {
-    'tool-browser': '/icon-browser.svg',
-    'tool-markdown': '/icon-markdown.svg',
-    'tool-search': '/icon-search.svg',
-  },
-};
-
-// Create UI overrides to add our tools to the toolbar
-const customUiOverrides: TLUiOverrides = {
-  tools: (editor, tools) => {
-    return {
-      ...tools,
-      browser: {
-        id: 'browser',
-        label: 'Browser',
-        icon: 'tool-browser',
-        kbd: 'b',
-        onSelect() {
-          editor.setCurrentTool('browser');
-        },
-      },
-      markdown: {
-        id: 'markdown',
-        label: 'Markdown',
-        icon: 'tool-markdown',
-        kbd: 'm',
-        onSelect() {
-          editor.setCurrentTool('markdown');
-        },
-      },
-      exaSearch: {
-        id: 'exaSearch',
-        label: 'Search',
-        icon: 'tool-search',
-        kbd: 's',
-        onSelect() {
-          editor.setCurrentTool('exaSearch');
-        },
-      },
-    };
-  },
-};
-
 // Custom toolbar component to include our tools
 function CustomToolbar() {
-  const tools = useTools();
-  const isBrowserSelected = useIsToolSelected(tools['browser']);
-  const isMarkdownSelected = useIsToolSelected(tools['markdown']);
-  const isSearchSelected = useIsToolSelected(tools['exaSearch']);
-
   return (
     <DefaultToolbar>
-      <TldrawUiMenuItem {...tools['browser']} isSelected={isBrowserSelected} />
-      <TldrawUiMenuItem {...tools['markdown']} isSelected={isMarkdownSelected} />
-      <TldrawUiMenuItem {...tools['exaSearch']} isSelected={isSearchSelected} />
+        <button className='btn px-2' onClick={() => window.tldrawEditor.setCurrentTool('browser')}><img src={IconBrowser} alt='Browser' /></button>
+        <button className='btn px-2' onClick={() => window.tldrawEditor.setCurrentTool('markdown')}><img src={IconMarkdown} alt='Markdown' /></button>
+        <button className='btn px-2' onClick={() => window.tldrawEditor.setCurrentTool('exaSearch')}><img src={IconSearch} alt='Search' /></button>
       <DefaultToolbarContent />
     </DefaultToolbar>
   );
@@ -257,8 +206,6 @@ function TldrawBrowserApp() {
           ExaSearchResultShapeUtil
         ]}
         tools={customTools}
-        overrides={customUiOverrides}
-        assetUrls={customAssetUrls}
         components={{
           Toolbar: CustomToolbar
         }}
@@ -315,3 +262,35 @@ document.addEventListener('DOMContentLoaded', () => {
     }, 500); // Increase delay to ensure everything is loaded
   }
 });
+
+
+window.electronAPI.onNewWindow((data:any) => {
+  //console.log('New window event:', data)
+  const editor = (window as any).tldrawEditor;
+  if (!editor) {
+    console.error('TLDraw editor not found');
+    return;
+  }
+  const {url} = data;
+  const { currentPagePoint } = editor.inputs
+
+  const id = createShapeId()
+  editor.createShape({
+    id,
+    type: 'browser',
+    x: currentPagePoint.x,
+    y: currentPagePoint.y,
+    props: {
+      w: 480,
+      h: 800,
+      url: url,
+      scrollX: 0,
+      scrollY: 0
+    }
+  })
+
+  setTimeout(() => {
+    editor.setCurrentTool('select')
+  }, 10)
+})
+
