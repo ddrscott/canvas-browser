@@ -57,6 +57,8 @@ export class BrowserShapeUtil extends BaseBoxShapeUtil<BrowserShape> {
   override component(shape: BrowserShape) {
     const isReady = useDelaySvgExport();
     const isEditing = this.editor.getEditingShapeId() === shape.id;
+    const isSelected = this.editor.getSelectedShapeIds().includes(shape.id);
+    const isInteractable = isEditing || isSelected;
     
     // Use a ref for the webview element
     const webviewRef = React.useRef<HTMLDivElement>(null);
@@ -215,14 +217,16 @@ export class BrowserShapeUtil extends BaseBoxShapeUtil<BrowserShape> {
     return (
       <HTMLContainer
         id={shape.id}
-        className={`w-full h-full flex flex-col rounded-lg overflow-hidden shadow-md bg-white pointer-events-auto ${isEditing ? 'tldraw-editing-container' : ''}`}
-        onPointerDown={isEditing ? stopEventPropagation : undefined}
-        onWheel={isEditing ? stopEventPropagation : undefined}
+        className={`w-full h-full flex flex-col rounded-lg overflow-hidden shadow-md bg-white ${isEditing ? 'tldraw-editing-container' : ''}`}
+        onPointerDown={isInteractable ? stopEventPropagation : undefined}
+        onClick={isInteractable ? stopEventPropagation : undefined}
+        onWheel={isInteractable ? stopEventPropagation : undefined}
+        style={{ pointerEvents: isInteractable ? 'auto' : 'none' }}
       >
         {/* Browser toolbar */}
         <div
           className="h-8 bg-gray-100 border-b border-gray-300 flex items-center px-2.5 w-full relative"
-          style={{ pointerEvents: isEditing ? 'auto' : 'none' }}
+          style={{ pointerEvents: isInteractable ? 'auto' : 'none' }}
         >
           {/* Back button */}
           <button
@@ -270,15 +274,21 @@ export class BrowserShapeUtil extends BaseBoxShapeUtil<BrowserShape> {
         <div 
           className="flex-1 relative"
         >
-          {/* Webview container - always visible */}
+          {/* Webview container - conditionally receives events based on interaction state */}
           <div
             ref={webviewRef}
             data-shape-id={shape.id}
-            className="w-full h-full absolute inset-0 pointer-events-auto"
+            className="w-full h-full absolute inset-0"
+            style={{ pointerEvents: isInteractable ? 'auto' : 'none' }}
+            onDoubleClick={(e) => {
+              e.stopPropagation();
+              this.editor.select(shape.id);
+              this.editor.setEditingShape(shape.id);
+            }}
           />
           
           <div className="absolute bottom-2.5 left-1/2 -translate-x-1/2 text-xs text-gray-600 bg-white/80 px-2 py-0.5 rounded pointer-events-none">
-            Double-click to interact
+            Select to interact
           </div>
         </div>
       </HTMLContainer>
