@@ -1,6 +1,10 @@
 import { app, BrowserWindow, session } from 'electron';
 import path from 'node:path';
 import started from 'electron-squirrel-startup';
+import Store from 'electron-store';
+
+// Initialize store for app settings
+const store = new Store();
 
 // Handle creating/removing shortcuts on Windows when installing/uninstalling.
 if (started) {
@@ -8,10 +12,20 @@ if (started) {
 }
 
 const createWindow = () => {
-  // Create the browser window with larger dimensions for drawing
-  const mainWindow = new BrowserWindow({
+  // Get stored window dimensions and position
+  const windowState = store.get('windowState', {
     width: 1200,
     height: 800,
+    x: undefined,
+    y: undefined
+  });
+
+  // Create the browser window with stored dimensions
+  const mainWindow = new BrowserWindow({
+    width: windowState.width,
+    height: windowState.height,
+    x: windowState.x,
+    y: windowState.y,
     title: 'Canvas Browser',
     webPreferences: {
       preload: path.join(__dirname, 'preload.js'),
@@ -77,7 +91,6 @@ const createWindow = () => {
       
       // Configure each webview
       contents.setWindowOpenHandler((e) => {
-          console.log('!!!!!!!!! preventing window open', e);
           mainWindow.webContents.send('cb-on-new-window', e)
           return { action: 'deny' };
       });
@@ -120,6 +133,21 @@ const createWindow = () => {
   if (process.env.NODE_ENV === 'development') {
     // mainWindow.webContents.openDevTools();
   }
+
+  // Save window state on close and when resized or moved
+  const saveWindowState = () => {
+    if (!mainWindow.isMaximized() && !mainWindow.isMinimized()) {
+      const bounds = mainWindow.getBounds();
+      store.set('windowState', bounds);
+    }
+  };
+
+  // Save when closing
+  mainWindow.on('close', saveWindowState);
+  
+  // Also save periodically when resized or moved
+  mainWindow.on('resize', saveWindowState);
+  mainWindow.on('move', saveWindowState);
 };
 
 // This method will be called when Electron has finished
